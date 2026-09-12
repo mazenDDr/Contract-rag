@@ -1,0 +1,8 @@
+url: https://zenodo.org/records/4595826/files/CUAD_v1.zip?download=1
+md5: c38f490a984420b8a62600db401fafd5
+raw_dir: data/raw
+manifest_path: data/processed/cuad_manifest.jsonl
+dev_manifest_path: data/processed/dev_manifest.jsonl
+fixture_dir: tests/fixtures/cuad_mini
+dev_subset_size: 100
+seed: 42
