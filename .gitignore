@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.env
+.env.*
+.DS_Store
+
+data/raw/
+data/processed/
+indexes/
+.cache/
+logs/
+
+# runs are local, except the small summaries we report
+runs/*
+!runs/*/
+runs/*/*
+!runs/*/summary.json
+!runs/*/report.md
