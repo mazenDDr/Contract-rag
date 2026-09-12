@@ -135,6 +135,7 @@ class GenerationResult(BaseModel):
     latency_ms: float = 0.0
     invalid_citations: int = 0  # citation markers pointing at no provided chunk
     raw_output: str | None = None  # unparsed model output, kept for failure analysis
+    truncated: bool = False  # hit the output-token limit; the answer may be missing or cut off
 
 
 # ---------- scores ----------

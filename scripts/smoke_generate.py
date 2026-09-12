@@ -73,7 +73,8 @@ def main() -> None:
         r = gen.generate(question, chunks, qid=f"smoke{i}", config_id="smoke")
         print(f"\n[{kind}] {question}")
         print(f"  answer:    {r.answer}")
-        print(f"  cited:     {r.cited_chunk_ids}  invalid={r.invalid_citations}  abstained={r.abstained}")
+        flags = f"invalid={r.invalid_citations}  abstained={r.abstained}  truncated={r.truncated}"
+        print(f"  cited:     {r.cited_chunk_ids}  {flags}")
         print(
             f"  tokens:    {r.prompt_tokens} in / {r.completion_tokens} out   latency: {r.latency_ms:.0f} ms"
         )

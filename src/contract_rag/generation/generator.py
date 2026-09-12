@@ -19,6 +19,7 @@ class GeneratorConfig(BaseModel):
     temperature: float = 0.0
     num_ctx: int = 8192  # Ollama's default context is small; 8 chunks + prompt need room
     max_tokens: int = 400
+    thinking_max_tokens: int = 2048  # reasoning shares the output budget; 400 ran out before the answer
     seed: int = 0
     think: bool | None = False  # hidden reasoning off for answers; None = don't send the flag
 
@@ -55,7 +56,7 @@ class OllamaGenerator:
             "options": {
                 "temperature": cfg.temperature,
                 "num_ctx": cfg.num_ctx,
-                "num_predict": cfg.max_tokens,
+                "num_predict": cfg.thinking_max_tokens if cfg.think else cfg.max_tokens,
                 "seed": cfg.seed,
             },
         }
@@ -82,4 +83,5 @@ class OllamaGenerator:
             latency_ms=latency_ms,
             invalid_citations=invalid,
             raw_output=raw,
+            truncated=getattr(response, "done_reason", None) == "length",
         )

@@ -21,7 +21,8 @@ Rules:
 2. End every sentence of your answer with the excerpt number(s) that support it, like [2] or [1][3].
 3. Use the contract's exact wording for key terms (dates, amounts, notice periods, governing law).
 4. If the excerpts do not contain the answer, set "abstained" to true and do not guess.
-5. Be concise: at most 4 sentences.
+5. Answer only what was asked. Do not add facts from excerpts that are unrelated to the question.
+6. Be concise: at most 4 sentences.
 
 Respond as JSON: {"answer": "...", "abstained": false}"""
 

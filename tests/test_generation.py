@@ -82,3 +82,17 @@ def test_think_flag_omitted_when_none():
     result = OllamaGenerator(GeneratorConfig(think=None), client=client).generate("?", CHUNKS, "q2", "cfg")
     assert "think" not in client.calls[0]
     assert result.abstained and result.cited_chunk_ids == []
+
+
+class TruncatingClient(FakeClient):
+    def chat(self, **kwargs):
+        response = super().chat(**kwargs)
+        response.done_reason = "length"
+        return response
+
+
+def test_thinking_gets_bigger_budget_and_truncation_is_flagged():
+    client = TruncatingClient("")
+    result = OllamaGenerator(GeneratorConfig(think=True), client=client).generate("?", CHUNKS, "q3", "cfg")
+    assert client.calls[0]["options"]["num_predict"] == 2048
+    assert result.truncated and result.answer == "" and not result.abstained
