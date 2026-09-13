@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>contract-rag</title>
+<meta name="description" content="Ask a contract, get the clause: a retrieval-augmented QA system over real commercial contracts, built with local open models and measured end to end.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F4F6F2; --sheet:#FFFFFF; --sunk:#EBEFE8;
+  --ink:#16201B; --ink-2:#45524A; --ink-3:#6E7B72;
+  --rule:#D9DFD6; --rule-soft:#E6EAE3;
+  --accent:#0F6B5A; --accent-ink:#FFFFFF; --accent-soft:#DCEDE7;
+  --mark:#E6F36A; --mark-ink:#16201B;
+  --ok:#2E7D4F; --ok-soft:#E0F0E5; --warn:#A86A12; --warn-soft:#F6EBD6; --bad:#B23A48; --bad-soft:#F6E1E4;
+  --shadow:0 1px 2px rgba(22,32,27,.06),0 8px 24px rgba(22,32,27,.06);
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --sans:"Figtree","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1311; --sheet:#161C18; --sunk:#1C231F;
+    --ink:#E6ECE7; --ink-2:#B3BEB6; --ink-3:#86938B;
+    --rule:#29322D; --rule-soft:#212924;
+    --accent:#5CC2A8; --accent-ink:#0F1311; --accent-soft:#1D332D;
+    --mark:#4A5620; --mark-ink:#F1F6DA;
+    --ok:#6FCB93; --ok-soft:#1C3325; --warn:#E3B35A; --warn-soft:#3A2E18; --bad:#EE8391; --bad-soft:#3C1E23;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1311; --sheet:#161C18; --sunk:#1C231F;
+  --ink:#E6ECE7; --ink-2:#B3BEB6; --ink-3:#86938B;
+  --rule:#29322D; --rule-soft:#212924;
+  --accent:#5CC2A8; --accent-ink:#0F1311; --accent-soft:#1D332D;
+  --mark:#4A5620; --mark-ink:#F1F6DA;
+  --ok:#6FCB93; --ok-soft:#1C3325; --warn:#E3B35A; --warn-soft:#3A2E18; --bad:#EE8391; --bad-soft:#3C1E23;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-underline-offset:3px}
+img{max-width:100%}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:24px}
+@media (max-width:520px){.wrap{padding-inline:16px}}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:-.02em;text-wrap:balance;margin:0}
+.mono{font-family:var(--mono)}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+mark{background:var(--mark);color:var(--mark-ink);padding:.05em .15em;border-radius:3px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+[hidden]{display:none!important}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--rule-soft)}
+.nav .wrap{display:flex;align-items:center;gap:20px;height:60px}
+.brand{font:800 19px/1 var(--display);letter-spacing:-.02em;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:8px}
+.brand i{font:500 13px/1 var(--mono);font-style:normal;color:var(--accent-ink);background:var(--accent);border-radius:5px;padding:4px 6px}
+.nav ul{display:flex;gap:4px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav ul a{color:var(--ink-2);text-decoration:none;font-weight:500;font-size:15px;padding:8px 10px;border-radius:8px}
+.nav ul a:hover{background:var(--sunk);color:var(--ink)}
+.icon-btn{border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:9px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer}
+@media (max-width:720px){.nav ul li.hide-sm{display:none}}
+
+/* hero */
+.hero{padding-block:72px 40px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:56px;align-items:center}
+@media (max-width:900px){.hero .wrap{grid-template-columns:1fr;gap:36px}.hero{padding-block:44px 24px}}
+.hero h1{font-size:clamp(40px,6.2vw,72px);line-height:1.02;font-weight:800}
+.hero h1 span{background:linear-gradient(transparent 58%,var(--mark) 58%);padding:0 .06em}
+.hero p.lede{font-size:clamp(17px,1.9vw,20px);color:var(--ink-2);max-width:34em;margin:22px 0 28px}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;font:600 16px/1 var(--sans);text-decoration:none;border-radius:12px;padding:14px 18px;border:1px solid transparent;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--sheet);color:var(--ink);border-color:var(--rule)}
+.btn.ghost:hover{border-color:var(--ink-3)}
+.fine{margin-top:18px;font-size:14px;color:var(--ink-3)}
+
+.demo-card{background:var(--sheet);border:1px solid var(--rule);border-radius:20px;box-shadow:var(--shadow);padding:22px;display:grid;gap:14px}
+.bubble{border-radius:14px;padding:12px 14px;font-size:15.5px;line-height:1.5}
+.bubble.q{background:var(--sunk);color:var(--ink)}
+.bubble.a{background:var(--accent-soft);color:var(--ink)}
+.who{display:block;font:500 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.clause{border:1px dashed var(--rule);border-radius:12px;padding:12px 14px;font-size:14.5px;color:var(--ink-2);line-height:1.55}
+.clause .src{display:flex;justify-content:space-between;gap:10px;font:500 12px/1.3 var(--mono);color:var(--ink-3);margin-bottom:8px;flex-wrap:wrap}
+.cite{font:500 12px/1 var(--mono);color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:6px;padding:3px 5px;margin:0 1px;vertical-align:1px;cursor:pointer}
+button.cite:hover,button.cite[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;font:600 13px/1 var(--sans);border-radius:999px;padding:7px 11px}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+
+/* sections */
+section{padding-block:72px}
+@media (max-width:720px){section{padding-block:52px}}
+.sec-head{max-width:40em;margin-bottom:34px}
+.sec-head h2{font-size:clamp(32px,4.4vw,48px);line-height:1.05}
+.sec-head p{color:var(--ink-2);font-size:18px;margin:14px 0 0}
+
+/* feature tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.tab{font:600 15px/1 var(--sans);color:var(--ink-2);background:var(--sheet);border:1px solid var(--rule);border-radius:999px;padding:11px 16px;cursor:pointer}
+.tab:hover{color:var(--ink);border-color:var(--ink-3)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:22px;padding:34px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:36px;align-items:center;min-height:250px}
+@media (max-width:800px){.panel{grid-template-columns:1fr;padding:24px;gap:24px}}
+.panel h3{font-size:clamp(26px,3vw,34px);line-height:1.1}
+.panel p{color:var(--ink-2);margin:12px 0 0}
+.panel .stat{background:var(--sunk);border-radius:16px;padding:22px;display:grid;gap:14px}
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;border-bottom:1px solid var(--rule);padding-bottom:10px}
+.stat-row:last-child{border-bottom:0;padding-bottom:0}
+.stat-row b{font:700 28px/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat-row span{color:var(--ink-2);font-size:15px}
+.fade-in{animation:fade .35s ease}
+@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;counter-reset:step;list-style:none;margin:0;padding:0}
+@media (max-width:900px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.steps{grid-template-columns:1fr}}
+.steps li{background:var(--sheet);border:1px solid var(--rule);border-radius:18px;padding:22px;counter-increment:step;display:flex;flex-direction:column;gap:10px}
+.steps li::before{content:counter(step);font:800 15px/1 var(--display);color:var(--accent-ink);background:var(--accent);width:32px;height:32px;border-radius:10px;display:grid;place-items:center}
+.steps h3{font-size:20px;line-height:1.2}
+.steps p{margin:0;color:var(--ink-2);font-size:15.5px}
+.steps code{font:13px var(--mono);background:var(--sunk);padding:1px 5px;border-radius:5px}
+
+/* try it */
+.try{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:22px;align-items:start}
+@media (max-width:860px){.try{grid-template-columns:1fr}}
+.qlist{display:grid;gap:10px}
+.qbtn{text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:14px 16px;cursor:pointer;color:var(--ink);font:500 15.5px/1.4 var(--sans);display:grid;gap:6px}
+.qbtn small{font:500 11.5px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.qbtn:hover{border-color:var(--ink-3)}
+.qbtn[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.answer-card{background:var(--sheet);border:1px solid var(--rule);border-radius:20px;box-shadow:var(--shadow);padding:24px;display:grid;gap:16px}
+.answer-card .contract{font:500 12.5px/1.4 var(--mono);color:var(--ink-3)}
+.answer-card .qtext{font:600 19px/1.4 var(--display);letter-spacing:-.01em}
+.answer-card .atext{font-size:16.5px;line-height:1.65}
+.sources{display:grid;gap:10px}
+.source{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;font-size:14.5px;line-height:1.55;color:var(--ink-2);transition:border-color .2s,background .2s}
+.source.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent-soft) 45%,var(--sheet))}
+.source .src{display:flex;gap:10px;flex-wrap:wrap;font:500 12px/1.3 var(--mono);color:var(--ink-3);margin-bottom:6px}
+.note{font-size:14px;color:var(--ink-3)}
+
+/* deep dives */
+.dive{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:48px;align-items:start;padding-block:56px;border-top:1px solid var(--rule)}
+.sec-head + .dive{border-top:0}
+@media (max-width:860px){.dive{grid-template-columns:1fr;gap:24px;padding-block:40px}}
+.dive h3{font-size:clamp(36px,5vw,56px);line-height:1}
+.dive h3 em{font-style:normal;color:var(--accent)}
+.dive .kicker{font:600 20px/1.35 var(--display);margin:16px 0 10px;letter-spacing:-.01em}
+.dive p{color:var(--ink-2);margin:0 0 12px}
+.dive ul{margin:0;padding-left:18px;color:var(--ink-2)}
+.dive li{margin:6px 0}
+.figure{background:var(--sheet);border:1px solid var(--rule);border-radius:20px;padding:22px}
+.figure figcaption{font-size:13.5px;color:var(--ink-3);margin-top:12px;line-height:1.5}
+.figure svg{width:100%;height:auto;display:block;color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--ink-2);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule)}
+th{font:500 12px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.pick td{font-weight:600}
+.kappa-bar{height:8px;border-radius:4px;background:var(--sunk);overflow:hidden;min-width:70px}
+.kappa-bar i{display:block;height:100%;background:var(--accent)}
+
+/* stats strip + footer */
+.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:860px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.strip div{background:var(--sheet);border:1px solid var(--rule);border-radius:16px;padding:18px}
+.strip b{display:block;font:800 34px/1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.strip span{display:block;margin-top:8px;color:var(--ink-2);font-size:14.5px;line-height:1.35}
+.cta-box{background:var(--ink);color:var(--paper);border-radius:26px;padding:48px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:center}
+@media (max-width:760px){.cta-box{grid-template-columns:1fr;padding:30px}}
+.cta-box h2{font-size:clamp(28px,4vw,42px);line-height:1.08}
+.cta-box p{color:color-mix(in srgb,var(--paper) 75%,transparent);margin:12px 0 0}
+.cta-box .btn.primary{background:var(--mark);color:#16201B}
+.cta-box .btn.ghost{background:transparent;color:var(--paper);border-color:color-mix(in srgb,var(--paper) 35%,transparent)}
+footer{padding-block:34px 44px;color:var(--ink-3);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between}
+footer a{color:var(--ink-2)}
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#top"><i>§</i>contract-rag</a>
+    <ul>
+      <li class="hide-sm"><a href="#how">How it works</a></li>
+      <li><a href="#try">Try it</a></li>
+      <li class="hide-sm"><a href="#results">Results</a></li>
+      <li><a href="https://github.com/mazenDDr/Contract-rag">GitHub</a></li>
+    </ul>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch between light and dark mode" title="Light / dark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Retrieval-augmented QA over real contracts</p>
+      <h1>Ask a contract.<br>Get <span>the clause.</span></h1>
+      <p class="lede">contract-rag reads real commercial contracts, searches inside the one you ask about, and answers with a citation to the clause it came from. Every part of it was measured: 189 search setups, 560 graded answers, and a hand-read diagnosis of what goes wrong.</p>
+      <div class="ctas">
+        <a class="btn primary" href="#try">See it answer ↓</a>
+        <a class="btn ghost" href="https://github.com/mazenDDr/Contract-rag">Read the code</a>
+      </div>
+      <p class="fine">Local, open-weight models only. No paid APIs.</p>
+    </div>
+    <div class="demo-card" aria-label="Example: a real question, answer and cited clause">
+      <div class="bubble q"><span class="who">Question</span>Can a party end the Master Services Agreement between Kubient Inc. and The Associated Press early without cause, and on what notice?</div>
+      <div class="bubble a"><span class="who">Answer · qwen3.5:4b</span>Yes, either party may terminate the Agreement for any reason following the Initial Term upon ninety (90) days written notice to the other party <span class="cite">[5]</span>.</div>
+      <div class="clause">
+        <div class="src"><span>[5] fixed::00002 · p.1</span><span>MASTER SERVICES AGREEMENT</span></div>
+        … paragraph 4(b) or any Exhibit. <mark>Either Party may terminate this Agreement for any reason following the Initial Term upon ninety (90) days written notice to the other Party.</mark> Except for termination for material breach …
+      </div>
+      <div class="badges"><span class="badge ok">Correct</span><span class="badge ok">Every claim supported</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="features" aria-labelledby="features-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 id="features-h">Everything between a PDF and a trustworthy answer</h2>
+      <p>Six stages, each one built so it can be switched out and measured.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Pipeline stages" id="tabs"></div>
+    <div class="panel" role="tabpanel" id="panel" tabindex="0"></div>
+  </div>
+</section>
+
+<section id="how" aria-labelledby="how-h" style="padding-top:24px">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 id="how-h">Here's how it works…</h2>
+      <p>One question, from a scanned-looking PDF to a checked answer.</p>
+    </div>
+    <ol class="steps">
+      <li><h3>Read the contract like a lawyer's PDF</h3><p>Layout-aware parsing finds headings by font size and weight, keeps tables as tables, and records where every character came from.</p></li>
+      <li><h3>Search inside that one contract</h3><p>BM25 keyword search over 512-token chunks, with the contract's own name taken out of the question so it can't drown out the meaning.</p></li>
+      <li><h3>Answer only from what was found</h3><p>The eight best excerpts are numbered; the model must cite them, like <code>[5]</code>, or say the contract doesn't cover it.</p></li>
+      <li><h3>Check every sentence</h3><p>A second model checks each claim against only the excerpts it cites, and grades the answer against a lawyer's reference.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="try" aria-labelledby="try-h" style="background:var(--sunk)">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 id="try-h">Ask it something</h2>
+      <p>Real questions and real answers from the test run. Click a citation to see the exact sentence it points to.</p>
+    </div>
+    <div class="try">
+      <div class="qlist" id="qlist" role="group" aria-label="Example questions"></div>
+      <div class="answer-card" id="answer" aria-live="polite"></div>
+    </div>
+    <p class="note" style="margin-top:18px">These answers were generated and graded offline (fixed chunks + BM25, the best setup). Typing your own question needs the API, which is the next part of the project.</p>
+  </div>
+</section>
+
+<section id="results" aria-labelledby="results-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 id="results-h">What the experiments found</h2>
+      <p>Chosen on the dev questions, reported on 70 held-out test questions, with 95% confidence intervals throughout.</p>
+    </div>
+
+    <div class="dive">
+      <div>
+        <h3>Search<em>.</em></h3>
+        <p class="kicker">Inside one contract, plain keywords win.</p>
+        <p>189 search setups were scored: three ways to cut a contract, BM25, three local embedding models, two ways to combine them, and two rerankers.</p>
+        <ul>
+          <li>Dropping the contract's own name from the question more than doubled how high the right clause ranks.</li>
+          <li>Meaning search alone was significantly worse than keywords; combining them tied.</li>
+          <li>The larger reranker <em>hurt</em>, and cost about a second per question.</li>
+        </ul>
+      </div>
+      <figure class="figure"><div id="chartSearch"></div><figcaption>Mean reciprocal rank of the first correct clause (1 = always ranked first), test questions, fixed 512-token chunks. The top bar is the setup the demo uses.</figcaption></figure>
+    </div>
+
+    <div class="dive">
+      <div>
+        <h3>Answer<em>.</em></h3>
+        <p class="kicker">Most answers are right, and all of them cite.</p>
+        <p>Eight setups were run end to end: <span class="mono">qwen3.5:4b</span> answers from numbered excerpts, and <span class="mono">gemma4:12b</span> grades them.</p>
+        <ul>
+          <li>Correctness lands between 0.65 and 0.75 for every setup; the differences are within noise.</li>
+          <li>Answers from section or sentence-window excerpts stick closest to their sources (0.83–0.87 faithful).</li>
+          <li>On questions the contract can't answer, it says so 91% of the time.</li>
+        </ul>
+      </div>
+      <figure class="figure"><div id="chartAnswer"></div><div class="legend"><span><i style="background:var(--ink-3)"></i>first grading</span><span><i style="background:var(--accent)"></i>final grading</span></div><figcaption>Answer correctness per setup. The same answers were re-graded after the grader was fixed (next section): every setup rose, and no answer changed.</figcaption></figure>
+    </div>
+
+    <div class="dive">
+      <div>
+        <h3>Grade<em>.</em></h3>
+        <p class="kicker">We checked the checker.</p>
+        <p>The first grader marked answers wrong for true details that weren't in the lawyer's highlighted clause. Every fix to the grader had to agree better with 24 reference labels before it was allowed in.</p>
+        <ul>
+          <li>A stricter-looking "checklist" grader agreed <em>worse</em> and was rejected.</li>
+          <li>The adopted rule: extra details only count against an answer if they contradict the reference.</li>
+        </ul>
+      </div>
+      <figure class="figure">
+        <div class="tbl"><table>
+          <thead><tr><th>Grading rule</th><th class="num">Agreement</th><th>κ with reference labels</th></tr></thead>
+          <tbody>
+            <tr><td>First grader</td><td class="num">75%</td><td><div style="display:flex;gap:10px;align-items:center"><div class="kappa-bar" style="flex:1"><i style="width:48%"></i></div><span class="mono">0.48</span></div></td></tr>
+            <tr><td>Key-fact checklist</td><td class="num">67%</td><td><div style="display:flex;gap:10px;align-items:center"><div class="kappa-bar" style="flex:1"><i style="width:18%;background:var(--bad)"></i></div><span class="mono">0.18</span></div></td></tr>
+            <tr class="pick"><td>Contradiction-only (adopted)</td><td class="num">83%</td><td><div style="display:flex;gap:10px;align-items:center"><div class="kappa-bar" style="flex:1"><i style="width:60%"></i></div><span class="mono">0.60</span></div></td></tr>
+          </tbody>
+        </table></div>
+        <figcaption>Cohen's κ is agreement corrected for chance (0 = chance, 1 = perfect). Labels were written blind by a stronger model, not a person, and are small in number, so these are estimates.</figcaption>
+      </figure>
+    </div>
+
+    <div class="dive">
+      <div>
+        <h3>Diagnose<em>.</em></h3>
+        <p class="kicker">Every wrong answer, traced to where it broke.</p>
+        <p>Each of the 185 answers that weren't fully correct was followed through the saved pipeline data to the first stage that failed, and 20 were read by hand.</p>
+        <ul>
+          <li>62% fail before the model sees the evidence, mostly two-part questions where only one part's clause is found.</li>
+          <li>Missed clauses share far fewer words with the question: 12% vs 34%.</li>
+          <li>With the evidence in hand, the 4B model still slips: inverted rights, merged clauses, wrong citation numbers.</li>
+        </ul>
+      </div>
+      <figure class="figure"><div id="chartFail"></div><div class="legend" id="failLegend"></div><figcaption>185 failures out of 560 answers, by the first stage that failed.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section aria-label="Project in numbers" style="padding-top:8px">
+  <div class="wrap">
+    <div class="strip">
+      <div><b>100</b><span>real contracts parsed from PDF (CUAD)</span></div>
+      <div><b>189</b><span>search setups scored</span></div>
+      <div><b>560</b><span>answers generated and graded</span></div>
+      <div><b>0.60</b><span>grader agreement with reference labels (κ)</span></div>
+      <div><b>0</b><span>paid APIs; everything runs on local open models</span></div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="cta-h">
+  <div class="wrap">
+    <div class="cta-box">
+      <div>
+        <h2 id="cta-h">Read how it was built, down to the failures.</h2>
+        <p>The code, the experiment reports and the failure analysis are all in the repository.</p>
+      </div>
+      <div class="ctas">
+        <a class="btn primary" href="https://github.com/mazenDDr/Contract-rag">Open on GitHub</a>
+        <a class="btn ghost" href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/failure_taxonomy.md">Failure analysis</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>contract-rag · built by Mazen Khaled</span>
+    <span><a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/ablations.md">Search experiments</a> · <a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/answer_quality.md">Answer quality</a> · <a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/failure_taxonomy.md">Failure analysis</a></span>
+  </div>
+</footer>
+
+<script>
+const EXAMPLES = [{"qid": "q0078", "category": "Termination For Convenience", "answerable": true, "contract": "the Master Services Agreement between Kubient Inc. and The Associated Press", "question": "Can a party end the Master Services Agreement between Kubient Inc. and The Associated Press early without cause, and on what notice?", "answer": "Yes, either party may terminate the Agreement for any reason following the Initial Term upon ninety (90) days written notice to the other party [5].", "abstained": false, "correctness": 1.0, "faithfulness": 1.0, "abstention_correct": true, "citations": [{"n": 5, "chunk_id": "fixed::00002", "section": "Exhibit 10.14 MASTER SERVICES AGREEMENT", "page": 1, "sentence": "Either Party may terminate this Agreement for any reason following the Initial Term upon ninety (90) days written notice to the other Party."}]}, {"qid": "q0046", "category": "Insurance", "answerable": true, "contract": "the Charter Affiliate Affiliation Agreement between The TUBE Music Network, Inc. and Tribune Broadcasting Company", "question": "What minimum insurance coverage amounts does the Charter Affiliate Affiliation Agreement between The TUBE Music Network, Inc. and Tribune Broadcasting Company require?", "answer": "The agreement requires Network to maintain Commercial General Liability insurance with limits of not less than $1,000,000 each occurrence and $2,000,000 in the aggregate [1]. Additionally, Network must procure Errors and Omissions insurance covering its media activities at a liability limit of $1,000,000 in any one policy period [1].", "abstained": false, "correctness": 1.0, "faithfulness": 1.0, "abstention_correct": true, "citations": [{"n": 1, "chunk_id": "fixed::00017", "section": "", "page": 12, "sentence": "(h) Network has procured, and shall maintain during the Term, at its sole expense, Commercial General Liability insurance at liability limits of not less than $1,000,000 each occurrence and $2,000,000 in the aggregate. … Additionally, Network will procure on or before the Affiliate Launch Date, and shall maintain during the Term, at its sole expense, Errors and Omissions insurance that covers Network’s media activities at a liability limit of $1,000,000 in any one (1) policy period."}]}, {"qid": "q0069", "category": "License Grant", "answerable": true, "contract": "the Domain Name and Content License Agreement between Beijing SINA Internet Information Service Co., Ltd and Beijing Yisheng Leju Information Services Co., Ltd", "question": "What license, if any, is granted under the Domain Name and Content License Agreement between Beijing SINA Internet Information Service Co., Ltd and Beijing Yisheng Leju Information Services Co., Ltd, and to whom?", "answer": "The Licensor (Beijing SINA Internet Information Service Co., Ltd.) grants an exclusive, non-transferable, and non-sublicensable license to the Licensee (Beijing Yisheng Leju Information Services Co., Ltd.) to use the Licensed Domain Names and Licensed Content [1][3].", "abstained": false, "correctness": 1.0, "faithfulness": 1.0, "abstention_correct": true, "citations": [{"n": 1, "chunk_id": "fixed::00003", "section": "", "page": 3, "sentence": "(b) Subject to the terms and conditions of this Agreement, Licensor hereby grants to Licensee, and Licensee hereby accepts from Licensor, an exclusive, non-transferable (except as set forth in Section 10.7) and non-sublicensable (except as provided in Section 2.1(c)) license to use the Licensed Content in connection with websites associated with the Licensed Domain Names until the earlier of (i) termination or expira"}, {"n": 3, "chunk_id": "fixed::00004", "section": "ARTICLE II GRANT OF LICENSE", "page": 4, "sentence": "(c) Notwithstanding anything in this Agreement to the contrary, Licensee has no right to sublicense any rights granted hereunder to any third party, or otherwise permit any third party to use any Licensed Domain Names or Licensed Content; provided, however, that any rights granted to Licensee hereunder shall be sublicensable, without the prior written consent of Licensor, to SINA Leju and Licensee’s Affiliates that a"}]}, {"qid": "q0060", "category": "Renewal Term", "answerable": true, "contract": "the Site Development and Hosting Agreement between Hanover Direct, Inc. and The Deerskin Companies, Inc.", "question": "Does the Site Development and Hosting Agreement between Hanover Direct, Inc. and The Deerskin Companies, Inc. renew after its initial term, and if so for how long?", "answer": "The agreement automatically renews for an additional one year period on each anniversary of the Effective Date unless terminated by either party upon ninety (90) days written notice [1].", "abstained": false, "correctness": 1.0, "faithfulness": 1.0, "abstention_correct": true, "citations": [{"n": 1, "chunk_id": "fixed::00002", "section": "", "page": 2, "sentence": "This Agreement shall be automatically renewed for an additional one year period on each anniversary of the Effective Date, unless terminated by either Party hereto upon ninety (90) days written notice to the other."}]}, {"qid": "q0048", "category": "Liquidated Damages", "answerable": false, "contract": "the Agency Agreement between Biopure Corporation and Agent", "question": "What amount of liquidated damages does the Agency Agreement between Biopure Corporation and Agent set for a breach?", "answer": "The provided contract excerpts do not specify an amount or formula for liquidated damages for a breach; they only state that neither party will be liable for special or consequential damages [1] and that remedies are cumulative [3].", "abstained": true, "correctness": null, "faithfulness": 1.0, "abstention_correct": true, "citations": [{"n": 1, "chunk_id": "fixed::00012", "section": "", "page": 6, "sentence": "In no event will either party be liable for special or consequential damages arising out of the breach or the termination of this Agreement."}, {"n": 3, "chunk_id": "fixed::00013", "section": "5. MISCELLANEOUS.", "page": 6, "sentence": "All remedies available to either party for breach of this Agreement are cumulative and may be exercised concurrently or separately."}]}];
+const LABELS = {q0078: "Termination", q0046: "Insurance", q0069: "License grant", q0060: "Renewal", q0048: "Not in the contract"};
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+/* theme */
+(() => {
+  const root = document.documentElement;
+  let saved = null;
+  try { saved = localStorage.getItem("theme"); } catch (e) {}
+  if (saved === "dark" || saved === "light") root.dataset.theme = saved;
+  $("#themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+    drawCharts();
+  });
+})();
+
+/* feature tabs */
+const FEATURES = [
+  {name: "Parse", title: "Real PDFs, read by layout", text: "PyMuPDF reads each page as a drawing: headings from font size and weight, tables kept as markdown, and a character offset for every block, so any answer can be traced back to its exact place in the contract.",
+   stats: [["100/100", "dev contracts parsed"], ["17,808", "text blocks with offsets"], ["0", "offset errors in the check"]]},
+  {name: "Chunk", title: "Three ways to cut a contract", text: "Fixed 512-token windows, single sentences with their neighbours, and section-aware splits on detected headings. All three were built and tested against each other rather than picked by habit.",
+   stats: [["13", "fixed chunks per contract"], ["148", "sentence units per contract"], ["39", "section chunks per contract"]]},
+  {name: "Search", title: "Keywords, meaning and both", text: "BM25 keyword search, three local embedding models (bge-small, bge-base, e5-base) in a local Qdrant index, two ways to fuse them, and two cross-encoder rerankers. Every combination was scored.",
+   stats: [["189", "setups scored"], ["0.73", "best mean reciprocal rank"], ["16 min", "for the whole grid on a laptop"]]},
+  {name: "Answer", title: "Cite it or say it isn't there", text: "qwen3.5:4b answers from eight numbered excerpts in constrained JSON, citing each claim like [3]. When the evidence isn't in the excerpts, it is told to refuse, not guess.",
+   stats: [["0.86–1.00", "citations pointing at real excerpts"], ["91%", "correct refusals on unanswerable questions"], ["~9 s", "per answer on a laptop"]]},
+  {name: "Grade", title: "A judge that shows its work", text: "gemma4:12b checks each statement against only the excerpts that statement cites, and a code rule rejects any number the excerpts never mention. Correctness is graded against a lawyer's reference answer.",
+   stats: [["0.60", "κ for correctness"], ["0.57", "κ for faithfulness"], ["24", "reference labels checked"]]},
+  {name: "Diagnose", title: "Why answers go wrong", text: "Every failed answer is traced through the saved stage-by-stage rankings to the first thing that broke: evidence lost, never ranked, cut too early, only half found, or misread by the model.",
+   stats: [["185", "failures traced"], ["62%", "fail at retrieval"], ["20", "cases read by hand"]]},
+];
+function showTab(i, focus) {
+  document.querySelectorAll(".tab").forEach((t, j) => { t.setAttribute("aria-selected", String(i === j)); t.tabIndex = i === j ? 0 : -1; });
+  const f = FEATURES[i], panel = $("#panel");
+  panel.setAttribute("aria-labelledby", "tab-" + i);
+  panel.innerHTML = `<div><p class="eyebrow">${String(i + 1).padStart(2, "0")} · ${f.name}</p><h3 style="margin-top:10px">${f.title}</h3><p>${f.text}</p></div>
+    <div class="stat">${f.stats.map(([b, s]) => `<div class="stat-row"><b>${b}</b><span>${s}</span></div>`).join("")}</div>`;
+  if (!reduceMotion) { panel.classList.remove("fade-in"); void panel.offsetWidth; panel.classList.add("fade-in"); }
+  if (focus) document.getElementById("tab-" + i).focus();
+}
+$("#tabs").innerHTML = FEATURES.map((f, i) => `<button class="tab" role="tab" id="tab-${i}" aria-controls="panel" type="button">${f.name}</button>`).join("");
+document.querySelectorAll(".tab").forEach((t, i) => {
+  t.addEventListener("click", () => showTab(i));
+  t.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); showTab((i + (e.key === "ArrowRight" ? 1 : FEATURES.length - 1)) % FEATURES.length, true); }
+  });
+});
+showTab(0);
+
+/* try it */
+function badges(e) {
+  if (!e.answerable) return e.abstention_correct ? `<span class="badge ok">Correctly said it isn't in the contract</span>` : `<span class="badge bad">Answered anyway</span>`;
+  const out = [];
+  out.push(e.correctness === 1 ? `<span class="badge ok">Correct</span>` : e.correctness === 0.5 ? `<span class="badge warn">Partly correct</span>` : `<span class="badge bad">Incorrect</span>`);
+  if (e.faithfulness === 1) out.push(`<span class="badge ok">Every claim supported</span>`);
+  return out.join("");
+}
+function showExample(i) {
+  const e = EXAMPLES[i];
+  document.querySelectorAll(".qbtn").forEach((b, j) => b.setAttribute("aria-pressed", String(i === j)));
+  const answer = esc(e.answer).replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (_, nums) =>
+    nums.split(",").map(n => `<button class="cite" type="button" data-n="${n.trim()}" aria-pressed="false">[${n.trim()}]</button>`).join(""));
+  $("#answer").innerHTML = `
+    <div class="contract">${esc(e.contract || "")}</div>
+    <div class="qtext">${esc(e.question)}</div>
+    <div class="atext">${answer}</div>
+    <div class="badges">${badges(e)}</div>
+    <div class="sources">${e.citations.map(c => `<div class="source" data-n="${c.n}"><div class="src"><span>[${c.n}] ${esc(c.chunk_id)}</span><span>p.${c.page}</span>${c.section ? `<span>${esc(c.section)}</span>` : ""}</div>… <mark>${esc(c.sentence)}</mark> …</div>`).join("")}</div>`;
+  $("#answer").querySelectorAll("button.cite").forEach(b => b.addEventListener("click", () => {
+    const n = b.dataset.n;
+    $("#answer").querySelectorAll("button.cite").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.n === n)));
+    $("#answer").querySelectorAll(".source").forEach(s => s.classList.toggle("on", s.dataset.n === n));
+    const target = $(`#answer .source[data-n="${n}"]`);
+    if (target && innerWidth < 860) target.scrollIntoView({behavior: reduceMotion ? "auto" : "smooth", block: "nearest"});
+  }));
+}
+// the full question names its contract; the list shows it the way the search sees it
+const short = e => (e.contract ? e.question.replace(e.contract, "the agreement") : e.question);
+$("#qlist").innerHTML = EXAMPLES.map(e => `<button class="qbtn" type="button" aria-pressed="false"><small>${esc(LABELS[e.qid] || e.category)}</small>${esc(short(e))}</button>`).join("");
+document.querySelectorAll(".qbtn").forEach((b, i) => b.addEventListener("click", () => showExample(i)));
+if (EXAMPLES.length) showExample(0);
+
+/* charts */
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function hbars(el, rows, max, opts = {}) {
+  const W = 640, rowH = 38, labelW = opts.labelW || 290, H = rows.length * rowH + 26;
+  const x = v => labelW + (W - labelW - 56) * v / max;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria || "")}">`;
+  for (let t = 0; t <= max + 1e-9; t += opts.tick || 0.25) {
+    s += `<line x1="${x(t)}" x2="${x(t)}" y1="0" y2="${H - 22}" stroke="${css("--rule")}" stroke-width="1"/>
+          <text x="${x(t)}" y="${H - 6}" font-size="12" text-anchor="middle" fill="${css("--ink-3")}" font-family="JetBrains Mono, monospace">${t.toFixed(2)}</text>`;
+  }
+  rows.forEach((r, i) => {
+    const y = i * rowH + 8, hi = r.hi;
+    s += `<text x="${labelW - 12}" y="${y + 17}" font-size="13.5" text-anchor="end" fill="${css(hi ? "--ink" : "--ink-2")}" font-weight="${hi ? 600 : 400}" font-family="Figtree, system-ui, sans-serif">${esc(r.label)}</text>
+          <rect x="${labelW}" y="${y + 4}" width="${Math.max(2, x(r.v) - labelW)}" height="20" rx="5" fill="${css(r.color || (hi ? "--accent" : "--ink-3"))}"/>
+          <text x="${x(r.v) + 8}" y="${y + 19}" font-size="13" fill="${css("--ink")}" font-family="JetBrains Mono, monospace">${r.v.toFixed(2)}</text>`;
+  });
+  el.innerHTML = s + "</svg>";
+}
+function dumbbell(el, rows) {
+  const W = 640, rowH = 36, labelW = 270, H = rows.length * rowH + 26, lo = 0.4, hi = 0.8;
+  const x = v => labelW + (W - labelW - 20) * (v - lo) / (hi - lo);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Answer correctness per setup, first grading and final grading">`;
+  for (let t = lo; t <= hi + 1e-9; t += 0.1) {
+    s += `<line x1="${x(t)}" x2="${x(t)}" y1="0" y2="${H - 22}" stroke="${css("--rule")}"/>
+          <text x="${x(t)}" y="${H - 6}" font-size="12" text-anchor="middle" fill="${css("--ink-3")}" font-family="JetBrains Mono, monospace">${t.toFixed(1)}</text>`;
+  }
+  rows.forEach(([label, a, b], i) => {
+    const y = i * rowH + 18;
+    s += `<text x="${labelW - 12}" y="${y + 5}" font-size="13.5" text-anchor="end" fill="${css("--ink-2")}" font-family="Figtree, system-ui, sans-serif">${esc(label)}</text>
+          <line x1="${x(a)}" x2="${x(b)}" y1="${y}" y2="${y}" stroke="${css("--accent")}" stroke-width="3" stroke-opacity=".35"/>
+          <circle cx="${x(a)}" cy="${y}" r="6" fill="${css("--ink-3")}"/>
+          <circle cx="${x(b)}" cy="${y}" r="7" fill="${css("--accent")}"/>
+          <text x="${x(b) + 11}" y="${y + 4}" font-size="12.5" fill="${css("--ink")}" font-family="JetBrains Mono, monospace">${b.toFixed(2)}</text>`;
+  });
+  el.innerHTML = s + "</svg>";
+}
+function stacked(el, legendEl, parts) {
+  const W = 640, H = 96, total = parts.reduce((a, p) => a + p.n, 0);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="185 failures by first failed stage">`, x0 = 0;
+  const x = n => (W - 2) * n / total;
+  parts.forEach(p => {
+    const w = x(p.n);
+    s += `<rect x="${x0 + 1}" y="10" width="${Math.max(1, w - 2)}" height="44" rx="6" fill="${css(p.color)}" fill-opacity="${p.op || 1}"/>`;
+    if (w > 42) s += `<text x="${x0 + w / 2}" y="37" font-size="13" text-anchor="middle" fill="${css(p.text || "--paper")}" font-family="JetBrains Mono, monospace">${p.n}</text>`;
+    x0 += w;
+  });
+  const retrieval = parts.filter(p => p.stage === "retrieval").reduce((a, p) => a + p.n, 0);
+  s += `<text x="0" y="80" font-size="13" fill="${css("--ink")}" font-family="Figtree, system-ui, sans-serif" font-weight="600">retrieval ${retrieval} (${Math.round(100 * retrieval / total)}%)</text>
+        <text x="${W}" y="80" font-size="13" text-anchor="end" fill="${css("--ink")}" font-family="Figtree, system-ui, sans-serif" font-weight="600">generation ${total - retrieval} (${Math.round(100 * (total - retrieval) / total)}%)</text>`;
+  el.innerHTML = s + "</svg>";
+  legendEl.innerHTML = parts.map(p => `<span><i style="background:var(${p.color});opacity:${p.op || 1}"></i>${p.label} · ${p.n}</span>`).join("");
+}
+function drawCharts() {
+  hbars($("#chartSearch"), [
+    {label: "BM25, contract name removed", v: 0.73, hi: true},
+    {label: "BM25 + e5 embeddings (hybrid)", v: 0.72},
+    {label: "BM25 + MiniLM reranker", v: 0.72},
+    {label: "BM25 + bge reranker", v: 0.56},
+    {label: "e5 embeddings alone", v: 0.47},
+    {label: "BM25, contract name left in", v: 0.34, color: "--bad"},
+    {label: "BM25 across all contracts", v: 0.29, color: "--bad"},
+  ], 1, {aria: "Mean reciprocal rank by search setup"});
+  dumbbell($("#chartAnswer"), [
+    ["fixed · BM25", 0.61, 0.75], ["fixed · BM25 + bge-base", 0.61, 0.74], ["sentence window · hybrid", 0.63, 0.74],
+    ["fixed · BM25 + bge-small", 0.59, 0.73], ["section · BM25", 0.58, 0.71], ["fixed · BM25 + MiniLM", 0.61, 0.70],
+    ["sentence window · BM25", 0.52, 0.67], ["section · hybrid (RRF)", 0.53, 0.65],
+  ]);
+  stacked($("#chartFail"), $("#failLegend"), [
+    {label: "only part of the evidence found", n: 68, color: "--accent", stage: "retrieval"},
+    {label: "ranked below the cut", n: 40, color: "--accent", op: 0.7, stage: "retrieval"},
+    {label: "never ranked / reranker cut", n: 7, color: "--accent", op: 0.45, stage: "retrieval", text: "--ink"},
+    {label: "unsupported claim", n: 33, color: "--warn", stage: "generation"},
+    {label: "misread the evidence", n: 25, color: "--warn", op: 0.7, stage: "generation"},
+    {label: "abstention error", n: 12, color: "--bad", op: 0.75, stage: "generation"},
+  ]);
+}
+drawCharts();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawCharts);
+</script>
+</body>
+</html>
