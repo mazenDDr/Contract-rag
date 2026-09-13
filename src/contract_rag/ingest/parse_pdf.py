@@ -33,7 +33,9 @@ _PAGE_NUMBER = re.compile(r"^(?:page\s*)?[-–—]?\s*\d+\s*[-–—]?$", re.IGN
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.;:])\s+")
 _DEFINED_TERM = re.compile(r"^(?P<title>[“\"][^”\"]{1,80}[”\"])(?P<body>\s+means\b.*)$", re.IGNORECASE)
 _UPPERCASE_TITLE = re.compile(r"^(?P<title>[A-Z][A-Z0-9 &/()-]{2,80})(?P<body>\s+.*)$")
-_PARSER_CACHE_VERSION = 2
+_TOC_LINE = re.compile(r"\.{5,}(?:\s*\d+)?\s*$")
+_MINOR_TITLE_WORDS = {"a", "an", "and", "by", "for", "in", "of", "on", "or", "the", "to", "upon", "with"}
+_PARSER_CACHE_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -156,6 +158,20 @@ def _body_font_size(blocks: list[LayoutBlock]) -> float:
     return statistics.median(sizes) if sizes else 10.0
 
 
+def _is_title_heading(text: str) -> bool:
+    words = re.findall(r"[A-Za-z][A-Za-z'’-]*", text)
+    if not words:
+        return False
+    return all(word.casefold() in _MINOR_TITLE_WORDS or word[0].isupper() or word.isupper() for word in words)
+
+
+def _invalid_level_one_label(label: str) -> bool:
+    numeric = re.sub(r"^section\s+", "", label, flags=re.IGNORECASE).rstrip(".")
+    if not numeric.isdigit():
+        return False
+    return len(numeric) >= 3 or int(numeric) > 60
+
+
 def _numbered_heading(text: str) -> tuple[str, str | None, int] | None:
     match = _CLAUSE_PREFIX.match(text)
     if not match:
@@ -163,11 +179,13 @@ def _numbered_heading(text: str) -> tuple[str, str | None, int] | None:
     label = match.group("label")
     body = match.group("body").strip()
     level = 1 if label.casefold().startswith("article") else label.rstrip(".").count(".") + 1
+    if level == 1 and _invalid_level_one_label(label):
+        return None
 
     title_candidate = body.rstrip(".:").strip()
     letters = [character for character in title_candidate if character.isalpha()]
     mostly_upper = bool(letters) and sum(character.isupper() for character in letters) / len(letters) >= 0.8
-    title_like = title_candidate.istitle() or mostly_upper or body.endswith(":")
+    title_like = _is_title_heading(title_candidate) or mostly_upper or body.endswith(":")
     if len(body) <= 100 and len(body.split()) <= 12 and title_like:
         return text, None, level
 
@@ -177,7 +195,7 @@ def _numbered_heading(text: str) -> tuple[str, str | None, int] | None:
         len(first_part) == 2
         and len(first_part[0]) <= 100
         and len(first_part[0].split()) <= 12
-        and (first_title.istitle() or first_part[0].endswith(":") or first_title.isupper())
+        and (_is_title_heading(first_title) or first_part[0].endswith(":") or first_title.isupper())
     ):
         return f"{label} {first_part[0]}", first_part[1], level
     defined_term = _DEFINED_TERM.match(body)
@@ -207,6 +225,8 @@ def _looks_like_visual_heading(block: LayoutBlock, body_size: float) -> bool:
 def _classify(block: LayoutBlock, body_size: float) -> list[ParsedUnit]:
     if block.is_table:
         return [ParsedUnit(page=block.page, text=block.text, block_type="table")]
+    if _TOC_LINE.search(block.text):
+        return [ParsedUnit(page=block.page, text=block.text, block_type="other")]
 
     numbered = _numbered_heading(block.text)
     if numbered:
@@ -215,6 +235,9 @@ def _classify(block: LayoutBlock, body_size: float) -> list[ParsedUnit]:
         if remainder:
             units.append(ParsedUnit(page=block.page, text=remainder, block_type="paragraph"))
         return units
+    clause_match = _CLAUSE_PREFIX.match(block.text)
+    if clause_match and _invalid_level_one_label(clause_match.group("label")):
+        return [ParsedUnit(page=block.page, text=block.text, block_type="paragraph")]
     if _LIST_PREFIX.match(block.text):
         return [ParsedUnit(page=block.page, text=block.text, block_type="list_item")]
     if _looks_like_visual_heading(block, body_size):
