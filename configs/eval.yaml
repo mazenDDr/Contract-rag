@@ -1,0 +1,13 @@
+cuad_json: data/raw/CUAD_v1/CUAD_v1.json
+master_csv: data/raw/CUAD_v1/master_clauses.csv
+manifest_path: data/processed/dev_manifest.jsonl
+documents_path: data/processed/documents.jsonl
+questions_path: data/eval/questions.jsonl
+review_path: data/eval/questions_review.md
+report_path: data/eval/questions_report.json
+seed: 13
+dev_fraction: 0.3
+per_doc_cap: 2
+quotas:
+  dev: {cuad_derived: 18, multi_span: 5, numeric: 3, unanswerable: 4}
+  test: {cuad_derived: 42, multi_span: 10, numeric: 7, unanswerable: 11}
