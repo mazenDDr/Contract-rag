@@ -20,3 +20,5 @@
 {"qid": "q0028", "faithful": "no", "correct": "partial", "severity": "minor", "note": "Adds 'from the date of execution', which is not in the excerpts. Gives the 12-month duration, not the end date (9/9/06).", "labeler": "frontier-llm"}
 {"qid": "q0029", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
 {"qid": "q0030", "faithful": "no", "correct": "partial", "severity": "minor", "note": "'Section 2.10' is not in excerpt [4]. Concludes there is no binding minimum; the lawyer labels the minimum monthly allocation as a minimum commitment.", "labeler": "frontier-llm"}
+{"qid": "q0005", "faithful": "no", "correct": "partial", "severity": "major", "note": "Reverses the direction of the Section 10.3 license (excerpt [3]: Green Cross grants MacroGenics) and adds 'a nonexclusive license worldwide', which [4] does not state. Non-compete [1], exclusive license [4] and sublicensing limits [7] are right; misses the royalty on competing products.", "labeler": "frontier-llm"}
+{"qid": "q0007", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
