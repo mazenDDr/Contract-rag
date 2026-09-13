@@ -83,7 +83,8 @@ def parse_config_key(key: str) -> tuple[RetrievalConfig, str]:
 
 
 def choose_configs(summary: dict[str, Any], bm25_baselines: bool, extra: Sequence[str]) -> list[str]:
-    keys = list(summary["selected_on_dev"])
+    """Dev-selected configurations, the best one per chunking, then a BM25-only baseline per chunking."""
+    keys = list(summary["selected_on_dev"]) + list(summary.get("best_per_chunking", {}).values())
     if bm25_baselines:
         for chunking in sorted({parse_config_key(k)[0].chunking for k in keys}):
             baseline = f"{chunking}__bm25__nodense__none__norerank__k8__doc"
@@ -141,10 +142,11 @@ def run(
     resources = resources_factory(index_cfg, repo_root)
     try:
         for key, (rc, mode) in parsed.items():
+            todo = [q for q in questions if (key, q.qid) not in retrieved]
+            if not todo:  # already retrieved: don't load models or open the index
+                continue
             pipe = resources.pipeline(rc)
-            for q in questions:
-                if (key, q.qid) in retrieved:
-                    continue
+            for q in todo:
                 query = (
                     scoped_query(q.question, q.contract_name, rc.doc_filter)
                     if mode == "scoped"
