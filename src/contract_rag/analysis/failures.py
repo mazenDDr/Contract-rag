@@ -172,6 +172,13 @@ def trace_spans(
     return traces
 
 
+def declined_as_scored(question: EvalQuestion, generation: GenerationResult, score: EvalScores) -> bool:
+    """Whether the answer counts as a refusal, as its scores define it (the flag, when there is no score)."""
+    if score.abstention_correct is None:
+        return generation.abstained
+    return score.abstention_correct == (not question.answerable)
+
+
 def categorize(
     question: EvalQuestion,
     spans: Sequence[SpanTrace],
@@ -179,10 +186,11 @@ def categorize(
     score: EvalScores,
     reranked: bool,
 ) -> str:
+    declined = declined_as_scored(question, generation, score)
     if not question.answerable:
-        return "correct" if generation.abstained else "answered_unanswerable"
-    if score.answer_correctness == 1.0 and not generation.abstained:
-        return "correct"
+        return "correct" if declined else "answered_unanswerable"
+    if score.answer_correctness == 1.0:
+        return "correct"  # graded correct on its content, even if the abstention flag was set
     if not spans:
         return "lost_in_chunking"  # evidence exists (answerable) but could not be placed in any chunk
     if not any(s.delivered for s in spans):
@@ -195,7 +203,7 @@ def categorize(
         return "ranking_miss"
     if not all(s.delivered for s in spans):
         return "partial_evidence"
-    if generation.abstained:
+    if declined:
         return "refused_with_evidence"
     if score.faithfulness is not None and score.faithfulness < 1.0:
         return "unsupported_claims"
@@ -221,7 +229,7 @@ def triage_row(
         category=categorize(question, spans, generation, score, "rerank" in result.stages),
         correctness=score.answer_correctness,
         faithfulness=score.faithfulness,
-        abstained=generation.abstained,
+        abstained=declined_as_scored(question, generation, score),
         spans=spans,
         final_recall=sum(s.final_rank is not None for s in spans) / n if n else None,
         delivered_recall=sum(s.delivered for s in spans) / n if n else None,

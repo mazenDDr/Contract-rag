@@ -1,0 +1,255 @@
+{
+  "rows": 560,
+  "failures": 185,
+  "overall": {
+    "partial_evidence": 68,
+    "unsupported_claims": 33,
+    "answered_unanswerable": 8,
+    "ranking_miss": 40,
+    "misread_evidence": 25,
+    "reranker_demotion": 3,
+    "refused_with_evidence": 4,
+    "retrieval_miss": 4
+  },
+  "by_stage": {
+    "retrieval": 115,
+    "generation": 70
+  },
+  "by_qtype": {
+    "cuad_derived": {
+      "partial_evidence": 25,
+      "unsupported_claims": 30,
+      "ranking_miss": 30,
+      "misread_evidence": 23,
+      "reranker_demotion": 2,
+      "refused_with_evidence": 3,
+      "retrieval_miss": 3
+    },
+    "multi_span": {
+      "partial_evidence": 40,
+      "unsupported_claims": 3,
+      "reranker_demotion": 1,
+      "ranking_miss": 7,
+      "misread_evidence": 2
+    },
+    "numeric": {
+      "partial_evidence": 3,
+      "ranking_miss": 3,
+      "refused_with_evidence": 1,
+      "retrieval_miss": 1
+    },
+    "unanswerable": {
+      "answered_unanswerable": 8
+    }
+  },
+  "correct_without_delivered_evidence": 1,
+  "configs": {
+    "fixed__bm25__nodense__none__norerank__k8__doc": {
+      "description": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "categories": {
+        "correct": 49,
+        "partial_evidence": 5,
+        "unsupported_claims": 9,
+        "answered_unanswerable": 1,
+        "ranking_miss": 4,
+        "misread_evidence": 2
+      },
+      "final_recall": 0.8452,
+      "delivered_recall": 0.8452
+    },
+    "fixed__bm25__nodense__none__minilm__k8__doc": {
+      "description": "fixed \u00b7 BM25 \u00b7 minilm \u00b7 contract",
+      "categories": {
+        "correct": 46,
+        "partial_evidence": 9,
+        "reranker_demotion": 3,
+        "answered_unanswerable": 1,
+        "unsupported_claims": 7,
+        "misread_evidence": 2,
+        "ranking_miss": 2
+      },
+      "final_recall": 0.8038,
+      "delivered_recall": 0.8038
+    },
+    "fixed__bm25__bge-small__w0.4__norerank__k8__doc": {
+      "description": "fixed \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "categories": {
+        "correct": 49,
+        "partial_evidence": 8,
+        "ranking_miss": 5,
+        "answered_unanswerable": 1,
+        "unsupported_claims": 5,
+        "misread_evidence": 2
+      },
+      "final_recall": 0.8359,
+      "delivered_recall": 0.8359
+    },
+    "fixed__bm25__bge-base__w0.4__norerank__k8__doc": {
+      "description": "fixed \u00b7 BM25+bge-base (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "categories": {
+        "correct": 48,
+        "partial_evidence": 6,
+        "ranking_miss": 4,
+        "answered_unanswerable": 1,
+        "misread_evidence": 6,
+        "unsupported_claims": 5
+      },
+      "final_recall": 0.8421,
+      "delivered_recall": 0.8421
+    },
+    "sentence_window__bm25__bge-small__w0.4__norerank__k8__doc": {
+      "description": "sentence_window \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "categories": {
+        "misread_evidence": 4,
+        "partial_evidence": 12,
+        "correct": 47,
+        "ranking_miss": 6,
+        "answered_unanswerable": 1
+      },
+      "final_recall": 0.5783,
+      "delivered_recall": 0.7452
+    },
+    "section__bm25__bge-base__rrf__norerank__k8__doc": {
+      "description": "section \u00b7 BM25+bge-base (RRF) \u00b7 no rerank \u00b7 contract",
+      "categories": {
+        "correct": 44,
+        "partial_evidence": 12,
+        "refused_with_evidence": 3,
+        "ranking_miss": 7,
+        "answered_unanswerable": 1,
+        "misread_evidence": 3
+      },
+      "final_recall": 0.7369,
+      "delivered_recall": 0.7369
+    },
+    "section__bm25__nodense__none__norerank__k8__doc": {
+      "description": "section \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "categories": {
+        "correct": 48,
+        "partial_evidence": 7,
+        "misread_evidence": 4,
+        "ranking_miss": 7,
+        "answered_unanswerable": 1,
+        "unsupported_claims": 2,
+        "retrieval_miss": 1
+      },
+      "final_recall": 0.7751,
+      "delivered_recall": 0.7751
+    },
+    "sentence_window__bm25__nodense__none__norerank__k8__doc": {
+      "description": "sentence_window \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "categories": {
+        "correct": 44,
+        "unsupported_claims": 5,
+        "partial_evidence": 9,
+        "ranking_miss": 5,
+        "retrieval_miss": 3,
+        "answered_unanswerable": 1,
+        "misread_evidence": 2,
+        "refused_with_evidence": 1
+      },
+      "final_recall": 0.5181,
+      "delivered_recall": 0.7137
+    }
+  },
+  "hardest_questions": [
+    {
+      "qid": "q0036",
+      "qtype": "multi_span",
+      "mean_correctness": 0.0,
+      "categories": {
+        "partial_evidence": 5,
+        "ranking_miss": 3
+      }
+    },
+    {
+      "qid": "q0080",
+      "qtype": "cuad_derived",
+      "mean_correctness": 0.0,
+      "categories": {
+        "ranking_miss": 6,
+        "retrieval_miss": 2
+      }
+    },
+    {
+      "qid": "q0089",
+      "qtype": "cuad_derived",
+      "mean_correctness": 0.0,
+      "categories": {
+        "ranking_miss": 4,
+        "unsupported_claims": 3,
+        "retrieval_miss": 1
+      }
+    },
+    {
+      "qid": "q0032",
+      "qtype": "multi_span",
+      "mean_correctness": 0.125,
+      "categories": {
+        "partial_evidence": 7,
+        "unsupported_claims": 1
+      }
+    },
+    {
+      "qid": "q0074",
+      "qtype": "cuad_derived",
+      "mean_correctness": 0.125,
+      "categories": {
+        "unsupported_claims": 3,
+        "reranker_demotion": 1,
+        "ranking_miss": 2,
+        "correct": 1,
+        "partial_evidence": 1
+      }
+    },
+    {
+      "qid": "q0077",
+      "qtype": "cuad_derived",
+      "mean_correctness": 0.1875,
+      "categories": {
+        "ranking_miss": 7,
+        "correct": 1
+      }
+    },
+    {
+      "qid": "q0035",
+      "qtype": "multi_span",
+      "mean_correctness": 0.25,
+      "categories": {
+        "partial_evidence": 8
+      }
+    },
+    {
+      "qid": "q0086",
+      "qtype": "cuad_derived",
+      "mean_correctness": 0.25,
+      "categories": {
+        "unsupported_claims": 3,
+        "misread_evidence": 3,
+        "correct": 2
+      }
+    }
+  ],
+  "checks": {
+    "grades_not_correct": 152,
+    "grader_cites_detail_outside_clause": 36,
+    "grader_cites_detail_outside_clause_by_category": {
+      "unsupported_claims": 4,
+      "partial_evidence": 16,
+      "misread_evidence": 11,
+      "ranking_miss": 4,
+      "retrieval_miss": 1
+    },
+    "answered_unanswerable": 8,
+    "answered_unanswerable_text_says_not_found": 2,
+    "refusals_on_answerable": 42,
+    "refusals_explaining_a_redaction": 4,
+    "question_words_in_delivered_evidence": 0.3415,
+    "question_words_in_missed_evidence": 0.1218,
+    "evidence_pieces_delivered": 996,
+    "evidence_pieces_missed": 284,
+    "preamble_questions": 8,
+    "retrieval_failure_rate_preamble": 0.2344,
+    "retrieval_failure_rate_other": 0.2451
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "questions": 30,
+  "judge_model": "gemma4:12b",
+  "generator_model": "qwen3.5:4b",
+  "judge_scores": {
+    "faithfulness": 0.86,
+    "citation_validity": 0.962,
+    "answer_relevance": 0.977,
+    "answer_correctness": 0.788,
+    "abstention_accuracy": 0.9
+  },
+  "abstained": 6,
+  "truncated": 0,
+  "judge_seconds_this_run": 294.9
+}

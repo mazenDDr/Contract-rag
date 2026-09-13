@@ -1,6 +1,9 @@
-# Re-grade the T11 answer-quality run with the key-facts rubric (judge.RUBRIC). Retrieval and answers are
-# copied from runs/matrix-v1 and its statement verdicts are reused, so only correctness is graded again.
-# Run: PYTHONPATH=src .venv/bin/python scripts/run_matrix.py --config configs/matrix-regrade.yaml --run-dir runs/matrix-v2
+# Re-grade the T11 answer-quality run (runs/matrix-v1) with the current rubric (judge.RUBRIC). Retrieval and
+# answers are copied and statement verdicts are reused, so only correctness is graded again.
+# Run: PYTHONPATH=src .venv/bin/python scripts/run_matrix.py --config configs/matrix-regrade.yaml --run-dir runs/matrix-v3
+# The committed runs/matrix-v3 was made in two steps with the same code path: matrix-v1 -> matrix-v2 (new grades),
+# then matrix-v2 -> matrix-v3 with reuse_verdicts_from: runs/matrix-v2, which reuses every grade (same rubric)
+# and only recomputes the deterministic parts (abstention on unanswerable questions).
 ablation_summary: runs/ablation-v1/summary.json
 questions_path: data/eval/questions.jsonl
 documents_path: data/processed/documents.jsonl

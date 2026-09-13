@@ -204,7 +204,7 @@ def test_regrading_reuses_answers_and_statement_verdicts(tmp_path):
         lambda c: OllamaJudge(c, client=GradeOnly()), lambda _: None,
     )  # fmt: skip
     assert FakeGenerator.calls == 0  # the answers were copied, not regenerated
-    assert GradeOnly.statement_calls == 0 and GradeOnly.grade_calls == 1  # one unique answer, graded again
+    assert GradeOnly.statement_calls == 0 and GradeOnly.grade_calls == 0  # same rubric: everything reused
     assert report["meta"]["verdicts_reused_from"] == "runs/m1"
     assert len((tmp_path / "runs/m2/scores.jsonl").read_text().splitlines()) == 2
     assert "Re-graded from `runs/m1`" in (tmp_path / "runs/m2/report.md").read_text()

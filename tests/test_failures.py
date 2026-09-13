@@ -80,10 +80,18 @@ def _result(final, stages):
     )
 
 
-def _triage(question, result, chunks, abstained=False, correctness=0.0, faithfulness=1.0):
+def _triage(
+    question, result, chunks, abstained=False, correctness=0.0, faithfulness=1.0, abstention_correct=None
+):
     labels = build_labels([question], {"d1": DOC}, chunks, chunks[0].strategy)[0]
     gen = GenerationResult(qid="q1", config_id="cfg", model="m", answer="a", abstained=abstained)
-    score = EvalScores(qid="q1", config_id="cfg", answer_correctness=correctness, faithfulness=faithfulness)
+    score = EvalScores(
+        qid="q1",
+        config_id="cfg",
+        answer_correctness=correctness,
+        faithfulness=faithfulness,
+        abstention_correct=abstention_correct,
+    )
     return triage_row(question, labels, result, gen, score, {c.chunk_id: c for c in chunks}, TEXT)
 
 
@@ -114,6 +122,9 @@ def test_unanswerable_questions_are_judged_on_abstention():
     result = _result([C[0]], {"bm25": [C[0]]})
     assert _triage(none, result, chunks, abstained=True).category == "correct"
     assert _triage(none, result, chunks, abstained=False).category == "answered_unanswerable"
+    # the scores count a "the contract doesn't say" answer as a refusal even with the flag off; triage agrees
+    refused_in_text = _triage(none, result, chunks, abstained=False, abstention_correct=True)
+    assert refused_in_text.category == "correct" and refused_in_text.abstained is True
 
 
 def test_evidence_in_a_sentence_window_counts_as_delivered():

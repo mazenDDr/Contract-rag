@@ -1,0 +1,501 @@
+{
+  "configs": {
+    "fixed__bm25__nodense__none__norerank__k8__doc": {
+      "description": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "baseline": true,
+      "context_recall": {
+        "mean": 0.8452,
+        "ci_low": 0.7596,
+        "ci_high": 0.9116,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.7314,
+        "ci_low": 0.6357,
+        "ci_high": 0.8235,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.625,
+        "ci_low": 0.5208,
+        "ci_high": 0.7264,
+        "n": 60
+      },
+      "citation_validity": {
+        "mean": 0.8696,
+        "ci_low": 0.7823,
+        "ci_high": 0.9435,
+        "n": 62
+      },
+      "answer_relevance": {
+        "mean": 0.9736,
+        "ci_low": 0.9458,
+        "ci_high": 0.9958,
+        "n": 60
+      },
+      "answer_correctness": {
+        "mean": 0.7458,
+        "ci_low": 0.6439,
+        "ci_high": 0.839,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.9143,
+        "ci_low": 0.8429,
+        "ci_high": 0.9714,
+        "n": 70
+      },
+      "median_retrieval_ms": 0.1,
+      "median_generation_ms": 9319.6
+    },
+    "fixed__bm25__nodense__none__minilm__k8__doc": {
+      "description": "fixed \u00b7 BM25 \u00b7 minilm \u00b7 contract",
+      "baseline": false,
+      "context_recall": {
+        "mean": 0.8038,
+        "ci_low": 0.7216,
+        "ci_high": 0.8817,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.7205,
+        "ci_low": 0.6235,
+        "ci_high": 0.8095,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.5461,
+        "ci_low": 0.4315,
+        "ci_high": 0.6607,
+        "n": 56
+      },
+      "citation_validity": {
+        "mean": 0.8644,
+        "ci_low": 0.7797,
+        "ci_high": 0.9492,
+        "n": 59
+      },
+      "answer_relevance": {
+        "mean": 0.9688,
+        "ci_low": 0.9345,
+        "ci_high": 0.9955,
+        "n": 56
+      },
+      "answer_correctness": {
+        "mean": 0.7034,
+        "ci_low": 0.5932,
+        "ci_high": 0.7966,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.8714,
+        "ci_low": 0.8,
+        "ci_high": 0.9429,
+        "n": 70
+      },
+      "median_retrieval_ms": 80.4,
+      "median_generation_ms": 10135.5
+    },
+    "fixed__bm25__bge-small__w0.4__norerank__k8__doc": {
+      "description": "fixed \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": false,
+      "context_recall": {
+        "mean": 0.8359,
+        "ci_low": 0.7503,
+        "ci_high": 0.9093,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.7116,
+        "ci_low": 0.6155,
+        "ci_high": 0.8062,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.7147,
+        "ci_low": 0.6147,
+        "ci_high": 0.8189,
+        "n": 60
+      },
+      "citation_validity": {
+        "mean": 0.9153,
+        "ci_low": 0.8387,
+        "ci_high": 0.9798,
+        "n": 62
+      },
+      "answer_relevance": {
+        "mean": 0.9792,
+        "ci_low": 0.95,
+        "ci_high": 1.0,
+        "n": 60
+      },
+      "answer_correctness": {
+        "mean": 0.7288,
+        "ci_low": 0.6186,
+        "ci_high": 0.8305,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.8857,
+        "ci_low": 0.8143,
+        "ci_high": 0.9571,
+        "n": 70
+      },
+      "median_retrieval_ms": 14.8,
+      "median_generation_ms": 9336.7
+    },
+    "fixed__bm25__bge-base__w0.4__norerank__k8__doc": {
+      "description": "fixed \u00b7 BM25+bge-base (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": false,
+      "context_recall": {
+        "mean": 0.8421,
+        "ci_low": 0.7604,
+        "ci_high": 0.9105,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.6868,
+        "ci_low": 0.5934,
+        "ci_high": 0.7804,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.6799,
+        "ci_low": 0.5847,
+        "ci_high": 0.7744,
+        "n": 63
+      },
+      "citation_validity": {
+        "mean": 0.9365,
+        "ci_low": 0.873,
+        "ci_high": 0.9841,
+        "n": 63
+      },
+      "answer_relevance": {
+        "mean": 0.979,
+        "ci_low": 0.9529,
+        "ci_high": 1.0,
+        "n": 63
+      },
+      "answer_correctness": {
+        "mean": 0.7373,
+        "ci_low": 0.6271,
+        "ci_high": 0.8305,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.9143,
+        "ci_low": 0.8429,
+        "ci_high": 0.9714,
+        "n": 70
+      },
+      "median_retrieval_ms": 16.9,
+      "median_generation_ms": 9362.6
+    },
+    "sentence_window__bm25__bge-small__w0.4__norerank__k8__doc": {
+      "description": "sentence_window \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": false,
+      "context_recall": {
+        "mean": 0.5783,
+        "ci_low": 0.4725,
+        "ci_high": 0.6822,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.4645,
+        "ci_low": 0.3602,
+        "ci_high": 0.5607,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.8658,
+        "ci_low": 0.7952,
+        "ci_high": 0.9322,
+        "n": 59
+      },
+      "citation_validity": {
+        "mean": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "n": 62
+      },
+      "answer_relevance": {
+        "mean": 0.9774,
+        "ci_low": 0.9492,
+        "ci_high": 1.0,
+        "n": 59
+      },
+      "answer_correctness": {
+        "mean": 0.7373,
+        "ci_low": 0.6356,
+        "ci_high": 0.8305,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.9429,
+        "ci_low": 0.8857,
+        "ci_high": 0.9857,
+        "n": 70
+      },
+      "median_retrieval_ms": 84.6,
+      "median_generation_ms": 7031.4
+    },
+    "section__bm25__bge-base__rrf__norerank__k8__doc": {
+      "description": "section \u00b7 BM25+bge-base (RRF) \u00b7 no rerank \u00b7 contract",
+      "baseline": false,
+      "context_recall": {
+        "mean": 0.7369,
+        "ci_low": 0.6426,
+        "ci_high": 0.8225,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.6762,
+        "ci_low": 0.5784,
+        "ci_high": 0.7733,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.8559,
+        "ci_low": 0.7825,
+        "ci_high": 0.9209,
+        "n": 59
+      },
+      "citation_validity": {
+        "mean": 0.9833,
+        "ci_low": 0.95,
+        "ci_high": 1.0,
+        "n": 60
+      },
+      "answer_relevance": {
+        "mean": 0.959,
+        "ci_low": 0.9223,
+        "ci_high": 0.9887,
+        "n": 59
+      },
+      "answer_correctness": {
+        "mean": 0.6525,
+        "ci_low": 0.5424,
+        "ci_high": 0.7627,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.8714,
+        "ci_low": 0.7857,
+        "ci_high": 0.9429,
+        "n": 70
+      },
+      "median_retrieval_ms": 31.9,
+      "median_generation_ms": 5606.7
+    },
+    "section__bm25__nodense__none__norerank__k8__doc": {
+      "description": "section \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "baseline": true,
+      "context_recall": {
+        "mean": 0.7751,
+        "ci_low": 0.6791,
+        "ci_high": 0.8599,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.6707,
+        "ci_low": 0.5647,
+        "ci_high": 0.7699,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.8469,
+        "ci_low": 0.7705,
+        "ci_high": 0.9108,
+        "n": 60
+      },
+      "citation_validity": {
+        "mean": 0.9667,
+        "ci_low": 0.9167,
+        "ci_high": 1.0,
+        "n": 60
+      },
+      "answer_relevance": {
+        "mean": 0.9481,
+        "ci_low": 0.9105,
+        "ci_high": 0.9808,
+        "n": 60
+      },
+      "answer_correctness": {
+        "mean": 0.7119,
+        "ci_low": 0.6017,
+        "ci_high": 0.8136,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.9,
+        "ci_low": 0.8286,
+        "ci_high": 0.9714,
+        "n": 70
+      },
+      "median_retrieval_ms": 0.1,
+      "median_generation_ms": 5646.8
+    },
+    "sentence_window__bm25__nodense__none__norerank__k8__doc": {
+      "description": "sentence_window \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "baseline": true,
+      "context_recall": {
+        "mean": 0.5181,
+        "ci_low": 0.4167,
+        "ci_high": 0.6153,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.4623,
+        "ci_low": 0.3565,
+        "ci_high": 0.5628,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.8348,
+        "ci_low": 0.7545,
+        "ci_high": 0.9076,
+        "n": 55
+      },
+      "citation_validity": {
+        "mean": 0.9649,
+        "ci_low": 0.9123,
+        "ci_high": 1.0,
+        "n": 57
+      },
+      "answer_relevance": {
+        "mean": 0.9818,
+        "ci_low": 0.9576,
+        "ci_high": 1.0,
+        "n": 55
+      },
+      "answer_correctness": {
+        "mean": 0.6695,
+        "ci_low": 0.5676,
+        "ci_high": 0.7712,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.8571,
+        "ci_low": 0.7714,
+        "ci_high": 0.9289,
+        "n": 70
+      },
+      "median_retrieval_ms": 0.1,
+      "median_generation_ms": 6828.4
+    }
+  },
+  "comparisons": [
+    {
+      "candidate": "fixed \u00b7 BM25 \u00b7 minilm \u00b7 contract",
+      "baseline": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "answer_correctness",
+      "mean_diff": -0.0424,
+      "ci_low": -0.1441,
+      "ci_high": 0.0508,
+      "n": 59,
+      "significant": false
+    },
+    {
+      "candidate": "fixed \u00b7 BM25 \u00b7 minilm \u00b7 contract",
+      "baseline": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "faithfulness",
+      "mean_diff": -0.0833,
+      "ci_low": -0.2013,
+      "ci_high": 0.0299,
+      "n": 53,
+      "significant": false
+    },
+    {
+      "candidate": "fixed \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "answer_correctness",
+      "mean_diff": -0.0169,
+      "ci_low": -0.0847,
+      "ci_high": 0.0508,
+      "n": 59,
+      "significant": false
+    },
+    {
+      "candidate": "fixed \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "faithfulness",
+      "mean_diff": 0.0902,
+      "ci_low": 0.0247,
+      "ci_high": 0.1625,
+      "n": 56,
+      "significant": true
+    },
+    {
+      "candidate": "fixed \u00b7 BM25+bge-base (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "answer_correctness",
+      "mean_diff": -0.0085,
+      "ci_low": -0.0763,
+      "ci_high": 0.0593,
+      "n": 59,
+      "significant": false
+    },
+    {
+      "candidate": "fixed \u00b7 BM25+bge-base (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "faithfulness",
+      "mean_diff": 0.0473,
+      "ci_low": -0.0469,
+      "ci_high": 0.1447,
+      "n": 60,
+      "significant": false
+    },
+    {
+      "candidate": "sentence_window \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": "sentence_window \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "answer_correctness",
+      "mean_diff": 0.0678,
+      "ci_low": 0.0,
+      "ci_high": 0.1356,
+      "n": 59,
+      "significant": false
+    },
+    {
+      "candidate": "sentence_window \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
+      "baseline": "sentence_window \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "faithfulness",
+      "mean_diff": 0.0465,
+      "ci_low": -0.0369,
+      "ci_high": 0.1218,
+      "n": 52,
+      "significant": false
+    },
+    {
+      "candidate": "section \u00b7 BM25+bge-base (RRF) \u00b7 no rerank \u00b7 contract",
+      "baseline": "section \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "answer_correctness",
+      "mean_diff": -0.0593,
+      "ci_low": -0.1525,
+      "ci_high": 0.0339,
+      "n": 59,
+      "significant": false
+    },
+    {
+      "candidate": "section \u00b7 BM25+bge-base (RRF) \u00b7 no rerank \u00b7 contract",
+      "baseline": "section \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "metric": "faithfulness",
+      "mean_diff": 0.012,
+      "ci_low": -0.0676,
+      "ci_high": 0.0968,
+      "n": 57,
+      "significant": false
+    }
+  ],
+  "meta": {
+    "configs": 8,
+    "questions": 70,
+    "split": "test",
+    "generations_reused": 0,
+    "session_minutes": 0.0,
+    "generator": "qwen3.5:4b",
+    "judge": "gemma4:12b",
+    "grader": "contradiction-only-v5",
+    "verdicts_reused_from": "runs/matrix-v1"
+  }
+}

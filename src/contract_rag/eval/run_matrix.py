@@ -341,16 +341,17 @@ def render_report(run_id: str, report: dict[str, Any]) -> str:
         "",
         *(
             [
-                f"Re-graded from `{meta['verdicts_reused_from']}`: same retrieval and answers; statement "
-                "verdicts reused, correctness graded again.",
+                f"Re-graded from `{meta['verdicts_reused_from']}`: same retrieval and answers; its statement "
+                "verdicts are reused, and so are grades made under the same rubric.",
                 "",
             ]
             if meta.get("verdicts_reused_from")
             else []
         ),
         "Configurations were selected on dev in the retrieval ablation; BM25-only baselines are added. "
-        "Judge scores are best used to compare configurations (calibration: faithfulness κ 0.57 against "
-        "reference labels). Brackets are 95% bootstrap intervals.",
+        "Judge scores are best used to compare configurations (agreement with 24 reference labels: "
+        "faithfulness κ 0.57, correctness κ 0.60 with the v5 rubric; see "
+        "`runs/judge-calibration-v5/report.md`). Brackets are 95% bootstrap intervals.",
         "",
         "| Configuration | R@8 | Correctness | Faithfulness | Citation validity | Abstention accuracy "
         "| Relevance | Retrieval ms | Generation ms |",

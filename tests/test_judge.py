@@ -212,6 +212,13 @@ def test_the_answer_text_decides_abstention_and_cited_content_is_graded():
     assert refusal.abstention_correct is True and judge.calls == 0  # flag off, but the text refuses
     assert declines(generation("Notice is ninety days [2].", ["d1::section::00001"])) is False
 
+    hedge = generation(
+        "The agreement does not specify a fee; instead, royalties apply [2].", ["d1::section::00001"]
+    )
+    graded_hedge = QueueClient(verdicts((True, True)), {"correctness": "correct", "reason": ""})
+    answered = score_answer(question(), hedge, CHUNKS, OllamaJudge(client=graded_hedge))
+    assert answered.abstention_correct is True  # on an answerable question the flag decides, not the wording
+
     graded = QueueClient(verdicts((True, True)), {"correctness": "correct", "reason": ""})
     flagged = generation("Termination needs ninety days' notice [2].", ["d1::section::00001"], abstained=True)
     s = score_answer(question(), flagged, CHUNKS, OllamaJudge(client=graded))
@@ -226,11 +233,16 @@ def test_statement_verdicts_can_be_reused_when_regrading():
         CHUNKS,
         OllamaJudge(client=QueueClient(verdicts((True, True)), {"correctness": "incorrect", "reason": ""})),
     )
+    older = json.dumps({**json.loads(first.judge_rationale), "rubric": "v4"})  # graded under another rubric
     grade_only = QueueClient({"correctness": "correct", "reason": ""})
-    again = score_answer(question(), answer, CHUNKS, OllamaJudge(client=grade_only), first.judge_rationale)
+    again = score_answer(question(), answer, CHUNKS, OllamaJudge(client=grade_only), older)
     assert len(grade_only.calls) == 1 and "Statement 1" not in grade_only.calls[0]["messages"][1]["content"]
     assert again.faithfulness == first.faithfulness == 1.0 and again.answer_correctness == 1.0
     assert json.loads(again.judge_rationale)["rubric"] == RUBRIC
+
+    no_calls = QueueClient()  # same rubric: the grade is reused too, so nothing is sent
+    same = score_answer(question(), answer, CHUNKS, OllamaJudge(client=no_calls), first.judge_rationale)
+    assert no_calls.calls == [] and same.answer_correctness == first.answer_correctness == 0.0
 
 
 def test_missing_or_unparseable_judge_output_leaves_scores_empty():

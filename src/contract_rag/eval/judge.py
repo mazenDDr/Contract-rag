@@ -329,13 +329,18 @@ def score_answer(
 ) -> EvalScores:
     """Answer-side scores for one question; retrieval-side scores come from retrieval_metrics.
 
-    The answer is judged on its text. Abstention accuracy uses `declines` (the flag or the wording); a refusal
-    with no citations is not sent to the judge, but a "refusal" that reports cited content (for example, that
-    the value is redacted) is graded like any other answer."""
+    The answer is judged on its text. On an unanswerable question, an answer whose first sentence says the
+    contract doesn't cover it counts as an abstention even with the flag off; on an answerable question the
+    flag decides, because "does not specify X; instead ..." there usually introduces the real answer. A
+    refusal with no citations is not sent to the judge, but a "refusal" that reports cited content (for
+    example, that the value is redacted) is graded like any other answer. With `prior_rationale`, statement
+    verdicts are reused, and so is the grade when it was made under the same rubric."""
     scores = EvalScores(qid=question.qid, config_id=gen.config_id, judge_model=judge.model)
-    scores.abstention_correct = declines(gen) == (not question.answerable)
+    declined = declines(gen) if not question.answerable else gen.abstained
+    scores.abstention_correct = declined == (not question.answerable)
     scores.citation_validity = citation_validity(gen)
     detail: dict[str, Any] = {"rubric": RUBRIC, "statements": None, "grade": None}
+    prior = json.loads(prior_rationale) if prior_rationale else {}
 
     text = gen.answer.strip()
     if not text or text == ABSTAIN_ANSWER or (declines(gen) and not _CITE.search(text)):
@@ -360,7 +365,12 @@ def score_answer(
             for st, v in zip(statements, verdicts, strict=True)
         ]
     if question.answerable:
-        grade = judge.grade(question.question, question.reference_answer, question.evidence_spans, gen.answer)
+        if prior.get("rubric") == RUBRIC and prior.get("grade"):
+            grade: Grade | None = Grade.model_validate(prior["grade"])
+        else:
+            grade = judge.grade(
+                question.question, question.reference_answer, question.evidence_spans, gen.answer
+            )
         if grade is not None:
             scores.answer_correctness = CORRECTNESS_SCORE[grade.correctness]
             detail["grade"] = grade.model_dump()
