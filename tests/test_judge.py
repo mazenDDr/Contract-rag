@@ -164,6 +164,26 @@ def test_score_answer_shows_each_statement_only_its_cited_excerpts():
     assert json.loads(s.judge_rationale)["grade"]["correctness"] == "correct"
 
 
+def test_the_judge_sees_the_sentence_window_the_generator_saw():
+    window = Chunk(
+        chunk_id="d1::sentence_window::00007",
+        doc_id="d1",
+        strategy="sentence_window",
+        text="Either party may terminate.",
+        context_text="Either party may terminate. Notice must be given ninety (90) days in advance.",
+        page_start=1,
+        page_end=1,
+        char_start=0,
+        char_end=27,
+        token_count=0,
+    )
+    client = QueueClient(verdicts((True, True)), {"correctness": "correct", "reason": ""})
+    judge = OllamaJudge(JudgeConfig(), client=client)
+    s = score_answer(question(), generation("Notice is 90 days [1].", [window.chunk_id]), [window], judge)
+    assert "ninety (90) days in advance" in client.calls[0]["messages"][1]["content"]
+    assert s.faithfulness == 1.0  # the number check reads the window too, not only the matched sentence
+
+
 def test_uncited_answer_scores_zero_even_if_the_judge_approves():
     client = QueueClient(verdicts((True, True)), {"correctness": "correct", "reason": ""})
     s = score_answer(

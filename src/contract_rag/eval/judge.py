@@ -115,6 +115,11 @@ class Grade(BaseModel):
     reason: str = ""
 
 
+def excerpt_text(chunk: Chunk) -> str:
+    """The text the generator was shown for this chunk (the sentence window, when there is one)."""
+    return chunk.context_text or chunk.text
+
+
 def _clean(text: str) -> str:
     text = text.strip(" ,;.\n")
     return re.sub(r"^(?:and|or|but|while|and also)\s+", "", text, flags=re.IGNORECASE).strip()
@@ -190,7 +195,8 @@ class OllamaJudge:
         parts = []
         for i, st in enumerate(statements, start=1):
             excerpts = [
-                f"[{n}] {' > '.join(chunks[n - 1].section_path[-2:]) or 'no section'}\n{chunks[n - 1].text}"
+                f"[{n}] {' > '.join(chunks[n - 1].section_path[-2:]) or 'no section'}\n"
+                f"{excerpt_text(chunks[n - 1])}"
                 for n in st.cited
                 if 1 <= n <= len(chunks)
             ]
@@ -251,7 +257,7 @@ def statement_check(st: Statement, verdict: Verdict, chunks: Sequence[Chunk]) ->
     and every number in the statement present in the cited excerpts."""
     if not (verdict.supported and st.cited and all(1 <= n <= len(chunks) for n in st.cited)):
         return False, []
-    missing = unsupported_numbers(st.text, [chunks[n - 1].text for n in st.cited])
+    missing = unsupported_numbers(st.text, [excerpt_text(chunks[n - 1]) for n in st.cited])
     return not missing, missing
 
 
