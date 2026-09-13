@@ -33,6 +33,7 @@ class FixedConfig(BaseModel):
 
 class SentenceWindowConfig(BaseModel):
     window_size: Annotated[int, Field(ge=0)] = 3
+    min_unit_tokens: Annotated[int, Field(gt=0)] = 5
 
 
 class SectionConfig(BaseModel):
@@ -74,6 +75,7 @@ def _chunker(name: StrategyName, config: ChunkingRunConfig) -> Chunker:
     if name == "sentence_window":
         return SentenceWindowChunker(
             window_size=config.sentence_window.window_size,
+            min_unit_tokens=config.sentence_window.min_unit_tokens,
             encoding_name=config.encoding_name,
         )
     return SectionChunker(max_tokens=config.section.max_tokens, encoding_name=config.encoding_name)

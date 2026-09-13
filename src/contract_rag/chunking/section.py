@@ -22,7 +22,9 @@ class SectionChunker(BaseChunker):
         sections: list[list[Block]] = []
         current: list[Block] = []
         for block in blocks:
-            if block.block_type == "heading" and current:
+            if block.block_type == "heading" and any(
+                current_block.block_type != "heading" for current_block in current
+            ):
                 sections.append(current)
                 current = []
             current.append(block)
@@ -41,16 +43,21 @@ class SectionChunker(BaseChunker):
 
         for block in section:
             if self.token_count(block.text) > self.max_tokens:
-                flush_pending()
-                chunks.extend(
-                    self.token_windows(doc.full_text, block.char_start, block.char_end, self.max_tokens)
-                )
+                start = pending[0].char_start if pending else block.char_start
+                pending.clear()
+                chunks.extend(self.token_windows(doc.full_text, start, block.char_end, self.max_tokens))
                 continue
             candidate_start = pending[0].char_start if pending else block.char_start
             if (
                 pending
                 and self.token_count(doc.full_text[candidate_start : block.char_end]) > self.max_tokens
             ):
+                if all(pending_block.block_type == "heading" for pending_block in pending):
+                    pending.clear()
+                    chunks.extend(
+                        self.token_windows(doc.full_text, candidate_start, block.char_end, self.max_tokens)
+                    )
+                    continue
                 flush_pending()
             pending.append(block)
         flush_pending()

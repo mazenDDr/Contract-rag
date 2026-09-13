@@ -73,7 +73,7 @@ def test_sentence_window_uses_one_sentence_with_neighbor_context() -> None:
         char_start=0,
         char_end=len(text),
     )
-    chunks = SentenceWindowChunker(window_size=1).chunk(document, [block])
+    chunks = SentenceWindowChunker(window_size=1, min_unit_tokens=1).chunk(document, [block])
 
     assert [chunk.text for chunk in chunks] == [
         "One sentence.",
@@ -84,6 +84,43 @@ def test_sentence_window_uses_one_sentence_with_neighbor_context() -> None:
     ]
     assert chunks[2].context_text == "Two sentences. Three sentences. Four sentences."
     assert all(chunk.section_path == ["Terms"] for chunk in chunks)
+
+
+def test_sentence_window_attaches_heading_run_and_short_marker_to_next_sentence() -> None:
+    parts = ["ARTICLE II", "DUTIES OF AGENT", "(a)", "The Agent shall perform the services."]
+    full_text = "\n\n".join(parts)
+    block_types = ["heading", "heading", "list_item", "paragraph"]
+    blocks = []
+    cursor = 0
+    for index, (text, block_type) in enumerate(zip(parts, block_types, strict=True)):
+        start = full_text.index(text, cursor)
+        blocks.append(
+            Block(
+                doc_id="heading-run",
+                block_id=f"heading-run::b{index:05d}",
+                block_type=block_type,
+                text=text,
+                page=1,
+                section_path=["ARTICLE II", "DUTIES OF AGENT"],
+                char_start=start,
+                char_end=start + len(text),
+            )
+        )
+        cursor = start + len(text)
+    document = Document(
+        doc_id="heading-run",
+        title="Heading Run",
+        source_path="heading-run.pdf",
+        num_pages=1,
+        full_text=full_text,
+    )
+
+    chunks = SentenceWindowChunker().chunk(document, blocks)
+
+    assert len(chunks) == 1
+    assert chunks[0].text == full_text
+    assert chunks[0].char_start == 0
+    assert chunks[0].char_end == len(full_text)
 
 
 def test_all_chunkers_propagate_table_metadata() -> None:
@@ -141,6 +178,40 @@ def test_section_chunker_keeps_short_sections_separate() -> None:
         "2. Second\n\nSecond body.",
     ]
     assert [chunk.section_path for chunk in chunks] == [["1. First"], ["2. Second"]]
+
+
+def test_section_chunker_attaches_consecutive_headings_to_following_body() -> None:
+    parts = ["ARTICLE II", "DUTIES OF AGENT", "The Agent shall perform the services."]
+    full_text = "\n\n".join(parts)
+    blocks = []
+    cursor = 0
+    for index, text in enumerate(parts):
+        start = full_text.index(text, cursor)
+        blocks.append(
+            Block(
+                doc_id="section-headings",
+                block_id=f"section-headings::b{index:05d}",
+                block_type="heading" if index < 2 else "paragraph",
+                text=text,
+                page=1,
+                section_path=parts[: min(index + 1, 2)],
+                char_start=start,
+                char_end=start + len(text),
+            )
+        )
+        cursor = start + len(text)
+    document = Document(
+        doc_id="section-headings",
+        title="Section Headings",
+        source_path="section-headings.pdf",
+        num_pages=1,
+        full_text=full_text,
+    )
+
+    chunks = SectionChunker(max_tokens=100).chunk(document, blocks)
+
+    assert len(chunks) == 1
+    assert chunks[0].text == full_text
 
 
 def test_section_chunker_subdivides_long_section_without_crossing_next_heading() -> None:

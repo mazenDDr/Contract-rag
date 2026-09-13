@@ -8,5 +8,6 @@ fixed:
   overlap_tokens: 64
 sentence_window:
   window_size: 3
+  min_unit_tokens: 5
 section:
   max_tokens: 512
