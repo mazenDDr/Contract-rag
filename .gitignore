@@ -20,3 +20,4 @@ runs/*
 runs/*/*
 !runs/*/summary.json
 !runs/*/report.md
+/build/

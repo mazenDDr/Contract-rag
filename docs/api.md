@@ -18,6 +18,21 @@ The web app needs the `ui` extra (`pip install -e ".[ui]"`):
 API_URL=http://127.0.0.1:8000 APP_API_KEY=$APP_API_KEY streamlit run ui/streamlit_app.py
 ```
 
+## Docker
+
+The image bakes in only what the best setup needs: the parsed documents, the fixed chunks and their BM25 index, about 13 MB. It leaves out the vector index and the embedding cache, and it installs only the API's own dependencies (`requirements-api.txt`, no PyTorch). The model is not in the image; it is reached at `$OLLAMA_HOST`.
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/stage_image.py        # copies the data into build/image/ (follows symlinks)
+docker build -t contract-rag-api .
+docker run --rm -p 8000:7860 \
+  -e APP_API_KEY=$APP_API_KEY \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  contract-rag-api                                            # then http://127.0.0.1:8000/docs
+```
+
+The container runs as uid 1000 and listens on `$PORT` (7860 by default), which is what a Hugging Face Docker Space expects. It has a health check on `/health`, and it will not start without `APP_API_KEY`.
+
 ## Endpoints
 
 | Method and path | Auth | What it does |

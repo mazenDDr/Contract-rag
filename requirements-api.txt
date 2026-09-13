@@ -1,0 +1,15 @@
+# What the API imports at run time (see docs/api.md). Version floors follow pyproject.toml.
+# No torch or sentence-transformers: the served setup (fixed chunks + BM25) doesn't embed.
+pydantic>=2.7
+pyyaml>=6.0
+orjson>=3.10
+tqdm>=4.66
+numpy
+scipy
+bm25s>=0.2
+PyStemmer>=2.2
+qdrant-client>=1.10
+ollama>=0.5
+fastapi>=0.111
+uvicorn>=0.30
+httpx>=0.27
