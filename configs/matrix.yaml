@@ -14,3 +14,4 @@ judge:
   think: false
 n_boot: 2000
 seed: 0
+reload_every: 10  # unload the Ollama model every 10 fresh calls; its server grows by GBs on a 24 GB laptop
