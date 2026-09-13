@@ -116,8 +116,8 @@ section{padding-block:80px}
 .scrolly{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:48px;align-items:start}
 .stage-wrap{position:sticky;top:74px;height:calc(100vh - 92px);min-height:560px;display:flex}
 .stage{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
-.steps{padding-bottom:30vh}
-.step{min-height:88vh;display:flex;align-items:center}
+.steps{padding-bottom:12vh}
+.step{min-height:72vh;display:flex;align-items:center}
 .step .card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:26px 26px 22px;box-shadow:var(--shadow);transition:border-color .3s,opacity .3s;opacity:.55}
 .step.active .card{opacity:1;border-color:var(--ink-3)}
 .step .card h3{font-size:30px;line-height:1.08;margin:8px 0 12px}
@@ -577,6 +577,50 @@ const stepObs = new IntersectionObserver(entries => {
 }, {rootMargin: "-45% 0px -45% 0px"});
 $$(".step").forEach(s => stepObs.observe(s));
 setStep("1");
+
+/* mouse wheel: one gesture = one step while the story is pinned; inertia during the move is ignored so a
+   flick can't skip steps; past either end the page moves on instead of scrolling through dead space */
+(() => {
+  const steps = $$(".step"), scrolly = $(".scrolly"), navH = () => $(".nav").offsetHeight;
+  let busy = false, acc = 0, idleTimer = 0, startedAt = 0, lastEvent = 0;
+  const MIN_MS = reduce ? 120 : 600, QUIET_MS = 200;
+  // free the wheel only once the glide has had its time AND the gesture has stopped: a trackpad keeps
+  // sending decaying momentum events for about a second, and each of them must not count as a new step
+  function release() {
+    const wait = Math.max(startedAt + MIN_MS, lastEvent + QUIET_MS) - performance.now();
+    if (wait <= 0) { busy = false; acc = 0; } else setTimeout(release, wait + 5);
+  }
+  function glide(y) { scrollTo({top: y, behavior: reduce ? "auto" : "smooth"}); }
+  function goStep(i) {
+    const r = steps[i].getBoundingClientRect();
+    setStep(steps[i].dataset.step);
+    glide(scrollY + r.top + r.height / 2 - (innerHeight + navH()) / 2);
+  }
+  addEventListener("wheel", e => {
+    if (e.ctrlKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX) || innerWidth <= 960) return;
+    const box = scrolly.getBoundingClientRect(), mid = innerHeight / 2;
+    if (box.top > mid || box.bottom < mid) return;  // the story isn't pinned: scroll normally
+    const i = steps.findIndex(s => s.classList.contains("active")), dir = Math.sign(e.deltaY);
+    if (i < 0) return;
+    e.preventDefault();
+    lastEvent = performance.now();
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { acc = 0; }, 180);
+    if (busy) return;  // swallow momentum while gliding
+    acc += e.deltaY;
+    if (Math.abs(acc) < 40) return;  // one mouse notch is ~100; a trackpad needs a deliberate swipe
+    busy = true;
+    if (dir > 0 && i === steps.length - 1) {
+      glide($("#decisions").getBoundingClientRect().top + scrollY - navH() - 12);  // on to the next section
+    } else if (dir < 0 && i === 0) {
+      glide($("#inside").getBoundingClientRect().top + scrollY - navH() - 12);  // back to the section head
+    } else {
+      goStep(i + dir);
+    }
+    startedAt = performance.now();
+    setTimeout(release, MIN_MS);
+  }, {passive: false});
+})();
 
 /* ---------- decisions ---------- */
 const DECISIONS = [
