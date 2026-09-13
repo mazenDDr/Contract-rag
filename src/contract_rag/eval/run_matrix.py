@@ -9,6 +9,7 @@ disk as it goes, so an interrupted run resumes. Results are reported on the held
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import statistics
 import time
@@ -92,6 +93,15 @@ def choose_configs(summary: dict[str, Any], bm25_baselines: bool, extra: Sequenc
                 keys.append(baseline)
     keys += list(extra)
     return list(dict.fromkeys(keys))
+
+
+def _unload(component: Any) -> None:
+    """Ask Ollama to drop a model from memory now instead of after its 5-minute keep-alive, so the
+    generator and the judge never sit in RAM together on a 24 GB laptop."""
+    client = getattr(component, "client", None)
+    if hasattr(client, "generate"):
+        with contextlib.suppress(Exception):  # an optimisation; never fail the run over it
+            client.generate(model=component.model, prompt="", keep_alive=0)
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -182,6 +192,7 @@ def run(
             generated[(key, q.qid)] = record
             _append(generation_path, record)
         log(f"generated: {key}")
+    _unload(generator)
 
     # 3) judging, reused for identical (answer, chunks) (resumable)
     scores_path = run_dir / "scores.jsonl"
@@ -221,6 +232,7 @@ def run(
             scored[(key, q.qid)] = merged
             _append(scores_path, merged.model_dump())
         log(f"judged: {key}")
+    _unload(judge)
 
     report = summarize(cfg, keys, parsed, summary, scored, retrieved, generated, questions)
     report["meta"] = {
