@@ -1,0 +1,11 @@
+manifest_path: data/processed/dev_manifest.jsonl
+documents_path: data/processed/documents.jsonl
+blocks_path: data/processed/blocks.jsonl
+failures_path: data/processed/parse_failures.jsonl
+report_path: data/processed/parse_report.json
+cache_dir: data/processed/parse_cache
+detect_tables: true
+remove_repeated_margins: true
+margin_ratio: 0.10
+min_repeated_pages: 2
+min_text_chars: 20
