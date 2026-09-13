@@ -208,10 +208,10 @@
         "n": 59
       },
       "faithfulness": {
-        "mean": 0.5265,
-        "ci_low": 0.4216,
-        "ci_high": 0.6207,
-        "n": 54
+        "mean": 0.8742,
+        "ci_low": 0.803,
+        "ci_high": 0.9379,
+        "n": 55
       },
       "citation_validity": {
         "mean": 1.0,
@@ -220,10 +220,10 @@
         "n": 62
       },
       "answer_relevance": {
-        "mean": 0.984,
-        "ci_low": 0.963,
+        "mean": 0.9879,
+        "ci_low": 0.9697,
         "ci_high": 1.0,
-        "n": 54
+        "n": 55
       },
       "answer_correctness": {
         "mean": 0.6271,
@@ -352,10 +352,10 @@
         "n": 59
       },
       "faithfulness": {
-        "mean": 0.4625,
-        "ci_low": 0.3601,
-        "ci_high": 0.5597,
-        "n": 48
+        "mean": 0.8717,
+        "ci_low": 0.7917,
+        "ci_high": 0.9384,
+        "n": 50
       },
       "citation_validity": {
         "mean": 0.9649,
@@ -364,15 +364,15 @@
         "n": 57
       },
       "answer_relevance": {
-        "mean": 0.9931,
-        "ci_low": 0.9792,
+        "mean": 0.9867,
+        "ci_low": 0.9667,
         "ci_high": 1.0,
-        "n": 48
+        "n": 50
       },
       "answer_correctness": {
-        "mean": 0.5085,
-        "ci_low": 0.3983,
-        "ci_high": 0.6186,
+        "mean": 0.5169,
+        "ci_low": 0.4068,
+        "ci_high": 0.6271,
         "n": 59
       },
       "abstention_accuracy": {
@@ -450,9 +450,9 @@
       "candidate": "sentence_window \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
       "baseline": "sentence_window \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
       "metric": "answer_correctness",
-      "mean_diff": 0.1186,
-      "ci_low": 0.0339,
-      "ci_high": 0.2119,
+      "mean_diff": 0.1102,
+      "ci_low": 0.0254,
+      "ci_high": 0.2034,
       "n": 59,
       "significant": true
     },
@@ -460,10 +460,10 @@
       "candidate": "sentence_window \u00b7 BM25+bge-small (weighted a=0.4) \u00b7 no rerank \u00b7 contract",
       "baseline": "sentence_window \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
       "metric": "faithfulness",
-      "mean_diff": 0.057,
-      "ci_low": -0.0404,
-      "ci_high": 0.1596,
-      "n": 45,
+      "mean_diff": 0.0301,
+      "ci_low": -0.0355,
+      "ci_high": 0.0958,
+      "n": 47,
       "significant": false
     },
     {
@@ -492,7 +492,7 @@
     "questions": 70,
     "split": "test",
     "generations_reused": 0,
-    "minutes": 50.9,
+    "session_minutes": 0.0,
     "generator": "qwen3.5:4b",
     "judge": "gemma4:12b"
   }
