@@ -419,7 +419,13 @@ def build_questions(
     seed: int,
     dev_fraction: float,
     per_doc_cap: int = 2,
+    replace: dict[str, str] | None = None,
 ) -> tuple[list[EvalQuestion], dict[str, Any]]:
+    """Select questions, then swap out reviewed-bad ones (`replace`: qid -> reason).
+
+    A replacement keeps the qid, split and question type and comes from the same split, so every other
+    question, including its qid, is unchanged; results already keyed by qid stay valid.
+    """
     splits = split_documents((c.doc_id for c in contracts), dev_fraction, seed)
     rng = random.Random(seed)
     used_docs: Counter[str] = Counter()
@@ -438,9 +444,43 @@ def build_questions(
 
     order = {q: i for i, q in enumerate(QTYPE_ORDER)}
     chosen.sort(key=lambda x: (x[0] != "dev", order[x[1].qtype], x[1].doc_id, x[1].key))
+    numbered: list[list[Any]] = [
+        [f"q{i:04d}", split, cand] for i, (split, cand) in enumerate(chosen, start=1)
+    ]
+
+    replaced = {}
+    for qid, reason in sorted((replace or {}).items()):
+        entry = next((e for e in numbered if e[0] == qid), None)
+        if entry is None:
+            raise ValueError(f"cannot replace unknown question {qid}")
+        _, split, old = entry
+        used_docs[old.doc_id] -= 1  # the old (doc, category) pair stays in used_pairs, so it can't come back
+        pool = [c for c in contracts if splits[c.doc_id] == split]
+        candidates = sorted(
+            (
+                cand
+                for c in pool
+                for cand in GENERATORS[old.qtype](c)
+                if used_docs[cand.doc_id] < per_doc_cap
+                and not {(cand.doc_id, cat) for cat in cand.categories} & used_pairs
+            ),
+            key=lambda x: (x.key, x.doc_id),
+        )
+        if not candidates:
+            raise ValueError(f"no replacement available for {qid} ({split}/{old.qtype})")
+        new = random.Random(f"{seed}:{qid}").choice(candidates)
+        used_docs[new.doc_id] += 1
+        used_pairs.update((new.doc_id, cat) for cat in new.categories)
+        entry[2] = new
+        replaced[qid] = {
+            "reason": reason,
+            "old": f"{old.doc_id} / {old.key}",
+            "new": f"{new.doc_id} / {new.key}",
+        }
+
     questions = [
         EvalQuestion(
-            qid=f"q{i:04d}",
+            qid=qid,
             question=cand.question,
             doc_id=cand.doc_id,
             qtype=cand.qtype,
@@ -448,10 +488,11 @@ def build_questions(
             reference_answer=cand.reference,
             evidence_spans=list(cand.evidence),
             answerable=cand.qtype != "unanswerable",
-            split=split,  # type: ignore[arg-type]
+            split=split,
             source="cuad",
+            notes="replacement after review" if qid in replaced else "",
         )
-        for i, (split, cand) in enumerate(chosen, start=1)
+        for qid, split, cand in numbered
     ]
     report = {
         "questions": len(questions),
@@ -462,6 +503,7 @@ def build_questions(
         "documents_used": len({q.doc_id for q in questions}),
         "documents_available": {s: sum(v == s for v in splits.values()) for s in ("dev", "test")},
         "shortfalls": shortfalls,
+        "replaced": replaced,
         "evidence_spans_dropped_unaligned": sum(c.dropped_spans for c in contracts),
         "seed": seed,
     }
@@ -513,7 +555,12 @@ def main() -> None:
 
     contracts = load_contracts(cuad, csv_rows, manifest, documents)
     questions, report = build_questions(
-        contracts, cfg["quotas"], int(cfg["seed"]), float(cfg["dev_fraction"]), int(cfg["per_doc_cap"])
+        contracts,
+        cfg["quotas"],
+        int(cfg["seed"]),
+        float(cfg["dev_fraction"]),
+        int(cfg["per_doc_cap"]),
+        replace=cfg.get("replace") or {},
     )
     out = Path(cfg["questions_path"])
     out.parent.mkdir(parents=True, exist_ok=True)

@@ -17,41 +17,73 @@
   "categories": {
     "Audit Rights": 7,
     "Insurance": 7,
-    "Warranty Duration": 6,
+    "Notice Period To Terminate Renewal": 6,
+    "Cap On Liability": 6,
     "Non-Compete": 6,
     "Post-Termination Services": 5,
     "Renewal Term": 5,
-    "Cap On Liability": 5,
     "Revenue/Profit Sharing": 5,
     "Minimum Commitment": 5,
-    "Notice Period To Terminate Renewal": 4,
-    "Effective Date": 4,
-    "Expiration Date": 4,
-    "License Grant": 3,
+    "License Grant": 4,
+    "Warranty Duration": 4,
     "Governing Law": 3,
     "Exclusivity": 3,
     "Termination For Convenience": 3,
+    "Effective Date": 3,
     "Change Of Control": 3,
+    "Expiration Date": 3,
     "Anti-Assignment": 3,
     "Ip Ownership Assignment": 3,
     "Anti-Assignment + Change Of Control": 2,
     "Expiration Date + Renewal Term": 2,
-    "Termination For Convenience + Post-Termination Services": 2,
+    "Exclusivity + Non-Compete": 2,
     "Liquidated Damages": 2,
     "Minimum Commitment + Revenue/Profit Sharing": 2,
+    "Termination For Convenience + Post-Termination Services": 1,
     "License Grant + Non-Transferable License": 1,
-    "Exclusivity + Non-Compete": 1,
     "Non-Disparagement": 1,
     "Source Code Escrow": 1,
     "No-Solicit Of Employees": 1,
     "Most Favored Nation": 1
   },
-  "documents_used": 68,
+  "documents_used": 69,
   "documents_available": {
     "dev": 30,
     "test": 70
   },
   "shortfalls": {},
+  "replaced": {
+    "q0005": {
+      "reason": "termination-for-convenience evidence is a registration notice, not a right to terminate",
+      "old": "rockymountainchocolatefactory-inc-12-23-2019-ex-10-2-strategic-alliance-agreement / Termination For Convenience + Post-Termination Services",
+      "new": "macrogenicsinc-08-02-2013-ex-10-collaboration-agreement / Exclusivity + Non-Compete"
+    },
+    "q0007": {
+      "reason": "warranty evidence describes a return procedure and states no duration",
+      "old": "europeanmicroholdingsinc-03-06-1998-ex-10-6-distributor-agreement / Warranty Duration",
+      "new": "blackstonegsolong-shortcreditincomefund-05-11-2020-ex-99-k-1-service-agreement / Notice Period To Terminate Renewal"
+    },
+    "q0042": {
+      "reason": "evidence is a right to terminate after 3 years, not an expiration date",
+      "old": "gigglesn-hugs-inc-06-23-2016-ex-10-2-strategic-alliance-agreement / Expiration Date",
+      "new": "spienergyco-ltd-03-09-2011-ex-99-5-operations-and-maintenance-agreement / Notice Period To Terminate Renewal"
+    },
+    "q0044": {
+      "reason": "evidence is a 30-day inspection period, not a warranty",
+      "old": "iminecorp-20180725-s-1-ex-10-5-11275970-ex-10-5-distributor-agreement / Warranty Duration",
+      "new": "impcotechnologiesinc-04-15-2003-ex-10-65-joint-venture-agreement / Minimum Commitment"
+    },
+    "q0069": {
+      "reason": "reference date (3/14/18) contradicts the evidence (commences March 15, 2018)",
+      "old": "freezetaginc-20180411-8-k-ex-10-1-11139603-ex-10-1-sponsorship-agreement / Effective Date",
+      "new": "lejuholdingsltd-20140121-drs-on-f-1-ex-10-26-8473102-ex-10-26-content-license-agreement1 / License Grant"
+    },
+    "q0095": {
+      "reason": "evidence is a sales-target intention, not a purchase or payment commitment",
+      "old": "valencetechnologyinc-02-14-2003-ex-10-joint-venture-contract / Minimum Commitment",
+      "new": "biofronteraag-04-29-2019-ex-4-17-supply-agreement / Cap On Liability"
+    }
+  },
   "evidence_spans_dropped_unaligned": 7,
   "seed": 13
 }

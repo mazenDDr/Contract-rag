@@ -28,12 +28,12 @@ contract plausibly lacks the clause). Tick the box, or note a fix.
   - **Reference:** Expiration Date: 10/15/00; Renewal Term: 6 months
   - Evidence: “April 15, 2000 through October 15, 2000 (6 Months from the Effective Date)”
   - Evidence: “Provided that COMWARE purchases a minimum of $45,420.00 worth of Products, in any combination, during the Initial Distribution Period, this Agreement will automatically renew for an additional 6 months (the Renewal Perio”
-- [ ] **q0005** · Termination For Convenience + Post-Termination Services · _the Strategic Alliance Agreement between Farids & Co. LLC and Edible Arrangements, LLC_
-  - **Q:** Can the Strategic Alliance Agreement between Farids & Co. LLC and Edible Arrangements, LLC be terminated without cause, and which obligations continue after termination?
-  - **Reference:** Termination For Convenience: If the Farids Group determines for any reason not to proceed with any proposed registration requested pursuant to Section 6.1, the Farids Group shall promptly notify the Company in writing.; Post-Termination Services: The Company agrees that, in the event it exercises it
-  - Evidence: “If the Farids Group determines for any reason not to proceed with any proposed registration requested pursuant to Section 6.1, the Farids Group shall promptly notify the Company in writing.”
-  - Evidence: “The Company agrees that, in the event it exercises its rights under this Section 6.4(c), it shall (i) promptly notify the Farids Group of the termination or expiration of any Suspension Period, (ii) within thirty (30) da”
-  - Evidence: “(a) Each of EA, Farids and the Company shall not, and shall cause their respective controlled Affiliates to not, either directly or indirectly solicit, hire, or contract with any of the employees of the other party or it”
+- [ ] **q0005** · Exclusivity + Non-Compete · _the Collaboration Agreement between MacroGenics, Inc. and Green Cross Corp._
+  - **Q:** What exclusivity and non-compete restrictions does the Collaboration Agreement between MacroGenics, Inc. and Green Cross Corp. place on the parties?
+  - **Reference:** Exclusivity: Subject to the terms and conditions of this Agreement, MacroGenics hereby grants to Green Cross an exclusive, royalty- bearing (i) license, with the right to grant sublicenses (subject to Section 10.1(b)), under the MacroGenics Licensed Technology and the MacroGenics Licensed Trademarks
+  - Evidence: “Subject to the terms and conditions of this Agreement, MacroGenics hereby grants to Green Cross an exclusive, royalty- bearing (i) license, with the right to grant sublicenses (subject to Section 10.1(b)), under the Macr”
+  - Evidence: “The license granted pursuant to this Section 10.3 shall be non­exclusive in the Territory and exclusive in the rest of the world outside the Territory.”
+  - Evidence: “Green Cross shall pay to MacroGenics a royalty of *** on Net Sales of Competing Products for the Royalty Term.”
 
 ## dev · numeric (3)
 
@@ -41,10 +41,10 @@ contract plausibly lacks the clause). Tick the box, or note a fix.
   - **Q:** How long is each renewal period of the Distributor Agreement between WatchGuard Technologies, Inc. and European Micro?
   - **Reference:** successive 1 year
   - Evidence: “The Term will automatically renew for successive additional periods of one (1) year each, provided that: (a) Distributor has made all Guaranteed Minimum Purchases and has complied with the marketing requirements under pa”
-- [ ] **q0007** · Warranty Duration · _the Distributor Agreement between WatchGuard Technologies, Inc. and European Micro_
-  - **Q:** For how long is the warranty under the Distributor Agreement between WatchGuard Technologies, Inc. and European Micro valid?
-  - **Reference:** In order to receive the remedy provided for hereunder, Distributor shall deliver to WGT a sample of the Product which Distributor finds to be defective in workmanship or materials, or damaged in shipment prior to Distributor assuming the risk of loss or damage , along with a written explanation of t
-  - Evidence: “In order to receive the remedy provided for hereunder, Distributor shall deliver to WGT a sample of the Product which Distributor finds to be defective in workmanship or materials, or damaged in shipment prior to Distrib”
+- [ ] **q0007** · Notice Period To Terminate Renewal · _the Service Agreement for Transfer Agent Services between Blackstone / GSO Long-Short Credit Income Fund and Mellon Investor Services LLC_
+  - **Q:** How many days' notice stops the Service Agreement for Transfer Agent Services between Blackstone / GSO Long-Short Credit Income Fund and Mellon Investor Services LLC from renewing?
+  - **Reference:** 60 days
+  - Evidence: “Unless either party gives written notice of termination of this Agreement at least 60 days prior to the end of the Initial Term, or any successive three-year term, this Agreement shall automatically renew for successive ”
 - [ ] **q0008** · Cap On Liability · _the Outsourcing Agreement between Tri City National Bank and Marshall & Ilsley Corporation_
   - **Q:** What is the maximum amount a party can be liable for under the Outsourcing Agreement between Tri City National Bank and Marshall & Ilsley Corporation?
   - **Reference:** Notwithstanding any provision in the Agreement to the contrary, M&I's liability to Customer for claims arising out of the ACH Services performed by M&I pursuant to this Section 6.5 shall be limited to errors and omissions which are caused solely by M&I's gross negligence or willful misconduct and wh
@@ -219,20 +219,20 @@ contract plausibly lacks the clause). Tick the box, or note a fix.
   - **Reference:** 15 days
   - Evidence: “This Agreement shall automatically be renewed for one (1) or more one (1) month periods unless either the Customer or i-on gives notice to the other party of its intention not to renew the”
   - Evidence: “Agreement, which notice must be given not less than fifteen (15) days before the end of the respective initial or renewal term.”
-- [ ] **q0042** · Expiration Date · _the Strategic Alliance Agreement between Giggles N' Hugs, Inc. and Kiddo, Inc._
-  - **Q:** On what date does the initial term of the Strategic Alliance Agreement between Giggles N' Hugs, Inc. and Kiddo, Inc. expire?
-  - **Reference:** 5/17/19
-  - Evidence: “Either party may terminate this agreement after 3 years following the effective date.”
+- [ ] **q0042** · Notice Period To Terminate Renewal · _the Operations and Maintenance Agreement between Solar Tax Partners 1, LLC and Solar Power, Inc._
+  - **Q:** How many days' notice stops the Operations and Maintenance Agreement between Solar Tax Partners 1, LLC and Solar Power, Inc. from renewing?
+  - **Reference:** 30 days
+  - Evidence: “This Agreement shall be subject to an automatic extension for consecutive one (1) year periods thereafter (each, an "Extension Term" and together with the Initial Term, the "Term"), unless terminated (i) in accordance wi”
 - [ ] **q0043** · Cap On Liability · _the Non-exclusive Distributor Agreement between iMine Corporation and SUNWAI Technology_
   - **Q:** What is the maximum amount a party can be liable for under the Non-exclusive Distributor Agreement between iMine Corporation and SUNWAI Technology?
   - **Reference:** In the event of termination by either party in accordance with any of the provisions of this Agreement, neither party shall be liable to the other, because of such termination, for compensation, reimbursement or damages on account of the loss of prospective profits or anticipated sales or on account
   - Evidence: “In the event of termination by either party in accordance with any of the provisions of this Agreement, neither party shall be liable to the other, because of such termination, for compensation, reimbursement or damages ”
   - Evidence: “IN NO EVENT SHALL JRVS'S LIABILITY ARISING OUT OF THIS AGREEMENT EXCEED THE AMOUNT RECEIVED BY JRVS FROM THE DISTRIBUTOR HEREUNDER FOR THE PRODUCT GIVING RISE TO THE LIABILITY.”
   - Evidence: “IN NO EVENT SHALL JRVS BE LIABLE FOR COSTS OF PROCUREMENT OF SUBSTITUTE PRODUCTS OR SERVICES, LOST PROFITS OR ANY CONSEQUENTIAL, SPECIAL, INCIDENTAL, OR INDIRECT DAMAGES, HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY (IN”
-- [ ] **q0044** · Warranty Duration · _the Non-exclusive Distributor Agreement between iMine Corporation and SUNWAI Technology_
-  - **Q:** For how long is the warranty under the Non-exclusive Distributor Agreement between iMine Corporation and SUNWAI Technology valid?
-  - **Reference:** The Distributor shall have thirty (30) days (the "Inspection Period") upon receipt of each shipment to inspect and test the Products.
-  - Evidence: “The Distributor shall have thirty (30) days (the "Inspection Period") upon receipt of each shipment to inspect and test the Products.”
+- [ ] **q0044** · Minimum Commitment · _the Joint Venture Agreement between IMPCO Technologies Inc. and MINDA INDUSTRIES LIMITED_
+  - **Q:** What minimum quantity or amount must be ordered or paid under the Joint Venture Agreement between IMPCO Technologies Inc. and MINDA INDUSTRIES LIMITED?
+  - **Reference:** If the JVC fails to sell [one million dollars (US$ 1,000,000.00)] worth of Products in the Territory within [eighteen (18)] months from the date of execution of this Agreement, both the Parties will mutually discuss whether to continue or terminate the Agreement.
+  - Evidence: “If the JVC fails to sell [one million dollars (US$ 1,000,000.00)] worth of Products in the Territory within [eighteen (18)] months from the date of execution of this Agreement, both the Parties will mutually discuss whet”
 - [ ] **q0045** · Minimum Commitment · _the Real Estate Education Training Program Development Agreement between T&B Seminars, Inc. and Legacy Education Alliance Holdings, Inc._
   - **Q:** What minimum quantity or amount must be ordered or paid under the Real Estate Education Training Program Development Agreement between T&B Seminars, Inc. and Legacy Education Alliance Holdings, Inc.?
   - **Reference:** Further, during the Term, except as otherwise provided herein, neither T&B nor any of its Affiliates may (1) offer to sell or sell any product or service that is the same or similar to the Products in the Exclusive Field of Use, or (2) contact, solicit, or direct any person or entity to contact or s
@@ -338,10 +338,11 @@ contract plausibly lacks the clause). Tick the box, or note a fix.
   - Evidence: “Distributor may, no later than one hundred and twenty (120) calendar days after a Product is sold by Distributor to a customer, return to Vendor, at Distributor's expense, any Product received by Distributor from Vendor ”
   - Evidence: “Vendor will provide an initial supply of spare Products and parts as Distributor may reasonably required in accordance with Sections 8 and 10.3 to permit Distributor to offer a six-month warranty on the Products to custo”
   - Evidence: “Although Vendor intends to provide a six-month limited warranty to the end user, Distributor shall make no warranties or representations with respect to the Products on behalf of Vendor”
-- [ ] **q0069** · Effective Date · _the Corporate Sponsorship Agreement between Freeze Tag Inc. and American Diabetes Association_
-  - **Q:** When does the Corporate Sponsorship Agreement between Freeze Tag Inc. and American Diabetes Association take effect?
-  - **Reference:** 3/14/18
-  - Evidence: “This Agreement shall commence on March 15, 2018 and will expire on March 14, 2020 unless terminated earlier pursuant to Section 13 of the Agreement (the "Term").”
+- [ ] **q0069** · License Grant · _the Domain Name and Content License Agreement between Beijing SINA Internet Information Service Co., Ltd and Beijing Yisheng Leju Information Services Co., Ltd_
+  - **Q:** What license, if any, is granted under the Domain Name and Content License Agreement between Beijing SINA Internet Information Service Co., Ltd and Beijing Yisheng Leju Information Services Co., Ltd, and to whom?
+  - **Reference:** Subject to the terms and conditions of this Agreement, Licensor hereby grants to Licensee, and Licensee hereby accepts from Licensor, an exclusive, non-transferable (except as set forth in Section 10.7) and non-sublicensable (except as provided in Section 2.1(c)) license to use the Licensed Domain N
+  - Evidence: “Subject to the terms and conditions of this Agreement, Licensor hereby grants to Licensee, and Licensee hereby accepts from Licensor, an exclusive, non-transferable (except as set forth in Section 10.7) and non-sublicens”
+  - Evidence: “Subject to the terms and conditions of this Agreement, Licensor hereby grants to Licensee, and Licensee hereby accepts from Licensor, an exclusive, non-transferable (except as set forth in Section 10.7) and non-sublicens”
 - [ ] **q0070** · Insurance · _the Corporate Sponsorship Agreement between Freeze Tag Inc. and American Diabetes Association_
   - **Q:** What insurance must a party maintain under the Corporate Sponsorship Agreement between Freeze Tag Inc. and American Diabetes Association?
   - **Reference:** During the term of this Agreement, and before any sponsorship or promotional activities are conducted under this Agreement, Company shall obtain and maintain at its expense, Commercial General Liability Insurance coverage with an insurance carrier with a Best's rating of A+. … The insurance shall be
@@ -459,10 +460,12 @@ contract plausibly lacks the clause). Tick the box, or note a fix.
   - **Reference:** For each month during the term of this Agreement, HPS will pay to SHPS an amount equal to (i) eighty-two and one-half percent (82.5%) of the first $500,000 of Care Management Revenues (as defined below) during such month plus (ii) eighty percent (80%) of Care Management Revenues during such month in
   - Evidence: “For each month during the term of this Agreement, HPS will pay to SHPS an amount equal to (i) eighty-two and one-half percent (82.5%) of the first $500,000 of Care Management Revenues (as defined below) during such month”
   - Evidence: “HPS will pay to SHPS all Care Management Revenues collected from such New Client, and SHPS will pay a commission to HPS equal to five percent (5%) of such amount received by SHPS from HPS pursuant to this Section 2.4.”
-- [ ] **q0095** · Minimum Commitment · _the Joint Venture Contract between Baoding Fengfan Group Limited Liability Company and Valence Technology, Inc._
-  - **Q:** Is there a minimum purchase, order or payment commitment under the Joint Venture Contract between Baoding Fengfan Group Limited Liability Company and Valence Technology, Inc.?
-  - **Reference:** It is the intention of the parties that no less than 50% of the Joint Venture Products should be sold overseas.
-  - Evidence: “It is the intention of the parties that no less than 50% of the Joint Venture Products should be sold overseas.”
+- [ ] **q0095** · Cap On Liability · _the Supply Agreement between Cutanea Life Sciences, Inc. and Ferrer Internacional, S.A._
+  - **Q:** Is either party's liability limited under the Supply Agreement between Cutanea Life Sciences, Inc. and Ferrer Internacional, S.A., and to what?
+  - **Reference:** EXCEPT AS OTHERWISE EXPRESSLY SET FORTH IN THIS AGREEMENT, IN NO EVENT WILL EITHER PARTY BE LIABLE FOR ANY SPECIAL, INDIRECT, CONSEQUENTIAL, OR INCIDENTAL DAMAGES, INCLUDING LOST PROFITS, HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, ARISING IN ANY WAY OUT OF THIS AGREEMENT. … THIS LIMITATION OF LI
+  - Evidence: “EXCEPT AS OTHERWISE EXPRESSLY SET FORTH IN THIS AGREEMENT, IN NO EVENT WILL EITHER PARTY BE LIABLE FOR ANY SPECIAL, INDIRECT, CONSEQUENTIAL, OR INCIDENTAL DAMAGES, INCLUDING LOST PROFITS, HOWEVER CAUSED AND ON ANY THEORY”
+  - Evidence: “THIS LIMITATION OF LIABILITY WILL APPLY EVEN IF A PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES, AND NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY PROVIDED HEREIN.”
+  - Evidence: “Neither party shall be liable to the other party for any direct, indirect, consequential, incidental, special, punitive or exemplary damages arising out of or relating to the suspension or termination of any of its oblig”
 - [ ] **q0096** · Post-Termination Services · _the Endorsement Agreement between SQUARE TWO GOLF INC. and KATHY WHITWORTH_
   - **Q:** What obligations continue after the Endorsement Agreement between SQUARE TWO GOLF INC. and KATHY WHITWORTH ends?
   - **Reference:** The Professional hereby grants to the Company the exclusive and worldwide right to use her name, likeness, image and personal identification, singly or in any combination, during the Term and for a period of six (6) months after the Term as provided in Section 2.8, in the creation of two (2) print a
