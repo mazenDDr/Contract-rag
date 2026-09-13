@@ -61,6 +61,8 @@ class MatrixConfig(BaseModel):
     judge: JudgeConfig = Field(default_factory=JudgeConfig)
     n_boot: int = 2000
     seed: int = 0
+    # Ollama's server grows by gigabytes over hundreds of requests; unloading the model resets it
+    reload_every: int = 25
 
 
 def parse_config_key(key: str) -> tuple[RetrievalConfig, str]:
@@ -175,7 +177,7 @@ def run(
     generated = {(g["config_id"], g["qid"]): g for g in _read_jsonl(generation_path)}
     by_context = {(g["qid"], tuple(g["final"])): g["generation"] for g in generated.values()}
     generator = generator_factory(cfg.generator)
-    reused = 0
+    reused = fresh = 0
     for key, (rc, _) in parsed.items():
         for q in questions:
             if (key, q.qid) in generated:
@@ -188,6 +190,9 @@ def run(
             else:
                 gen = generator.generate(q.question, [chunks[rc.chunking][c] for c in final], q.qid, key)
                 by_context[context] = gen.model_dump()
+                fresh += 1
+                if fresh % cfg.reload_every == 0:
+                    _unload(generator)
             record = {"config_id": key, "qid": q.qid, "final": final, "generation": gen.model_dump()}
             generated[(key, q.qid)] = record
             _append(generation_path, record)
@@ -210,6 +215,8 @@ def run(
             if context not in judged_context:
                 final_chunks = [chunks[rc.chunking][c] for c in record["final"]]
                 judged_context[context] = score_answer(by_qid[q.qid], gen, final_chunks, judge)
+                if len(judged_context) % cfg.reload_every == 0:
+                    _unload(judge)
             answer = judged_context[context]
             retrieval = score_retrieval(retrieved[(key, q.qid)], labels[rc.chunking][q.qid])
             merged = retrieval.model_copy(

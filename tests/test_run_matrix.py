@@ -162,3 +162,44 @@ def test_run_reuses_identical_contexts_resumes_and_writes_a_report(tmp_path):
     go()  # resumed: nothing is generated or scored twice
     assert FakeGenerator.calls == 1
     assert len(scores.read_text().splitlines()) == 2
+
+
+class RecordingClient:
+    def __init__(self):
+        self.unloads = 0
+
+    def generate(self, model, prompt, keep_alive):
+        assert keep_alive == 0
+        self.unloads += 1
+
+
+def test_the_generator_is_unloaded_periodically_and_after_its_phase(tmp_path):
+    _write_corpus(tmp_path)
+    client = RecordingClient()
+
+    class Generator(FakeGenerator):
+        model = "fake"
+
+        def __init__(self, cfg):
+            self.client = client
+
+    cfg = MatrixConfig(
+        ablation_summary="summary.json",
+        questions_path="data/questions.jsonl",
+        documents_path="data/documents.jsonl",
+        retrieval_config="retrieval.yaml",
+        report_path="docs/answer_quality.md",
+        n_boot=20,
+        reload_every=1,
+    )
+    run(
+        cfg,
+        tmp_path,
+        tmp_path / "runs/m2",
+        resources_factory=FakeResources,
+        generator_factory=Generator,
+        judge_factory=lambda c: OllamaJudge(c, client=FakeJudgeClient()),
+        log=lambda _: None,
+    )
+    # one fresh generation (the second config reuses it): one periodic unload, one at the end of the phase
+    assert client.unloads == 2
