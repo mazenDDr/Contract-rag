@@ -11,3 +11,12 @@ per_doc_cap: 2
 quotas:
   dev: {cuad_derived: 18, multi_span: 5, numeric: 3, unanswerable: 4}
   test: {cuad_derived: 42, multi_span: 10, numeric: 7, unanswerable: 11}
+# Review outcome: questions whose CUAD annotation does not support the question as asked. Each is swapped
+# for another question of the same split and type, keeping its qid (see build_questions).
+replace:
+  q0005: "termination-for-convenience evidence is a registration notice, not a right to terminate"
+  q0007: "warranty evidence describes a return procedure and states no duration"
+  q0042: "evidence is a right to terminate after 3 years, not an expiration date"
+  q0044: "evidence is a 30-day inspection period, not a warranty"
+  q0069: "reference date (3/14/18) contradicts the evidence (commences March 15, 2018)"
+  q0095: "evidence is a sales-target intention, not a purchase or payment commitment"
