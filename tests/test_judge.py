@@ -13,6 +13,7 @@ from contract_rag.eval.judge import (
     faithfulness_score,
     score_answer,
     split_statements,
+    unsupported_numbers,
 )
 from contract_rag.schemas import Chunk, EvalQuestion, EvalScores, GenerationResult
 
@@ -119,8 +120,22 @@ def test_faithfulness_guard_ignores_judge_support_without_real_citations():
         Statement(text="c", cited=[9]),
     ]
     judged = [Verdict(id=i, supported=True) for i in (1, 2, 3)]  # the judge says all three are supported
-    assert faithfulness_score(statements, judged, n_chunks=2) == pytest.approx(1 / 3)
-    assert faithfulness_score([], [], 2) is None
+    assert faithfulness_score(statements, judged, CHUNKS) == pytest.approx(1 / 3)
+    assert faithfulness_score([], [], CHUNKS) is None
+
+
+def test_numbers_must_appear_in_the_cited_excerpt():
+    excerpt = ["Terminable on ninety (90) days' notice under Section 12.7."]
+    assert unsupported_numbers("Ninety days' notice is required", excerpt) == []  # no digits to check
+    assert unsupported_numbers("90 days' notice under Section 12.7", excerpt) == []
+    assert unsupported_numbers("60 days' notice as set out in Article 5.1", excerpt) == ["5.1", "60"]
+    assert unsupported_numbers("One party may give 90 days' notice", excerpt) == []  # "one" is not a quantity
+    assert unsupported_numbers("a $45,420.00 minimum", ["a minimum of $45,420 worth"]) == []
+    assert unsupported_numbers("30 days", ["within thirty days"]) == []  # number words count in the excerpt
+    statement, yes = Statement(text="Notice is 60 days", cited=[2]), Verdict(id=1, supported=True)
+    assert (
+        faithfulness_score([statement], [yes], CHUNKS) == 0.0
+    )  # the judge said yes; the number check says no
 
 
 def test_citation_validity():

@@ -5,8 +5,9 @@ judge then checks every statement against ONLY the excerpts that statement cites
 somewhere else, and marks whether the statement addresses the question. A second call grades correctness
 against the lawyer-derived reference answer.
 
-Deterministic guards: a statement that cites nothing, or cites an excerpt that doesn't exist, is unsupported
-whatever the judge says. Citation validity and abstention correctness never involve the LLM.
+Deterministic guards: a statement that cites nothing, cites an excerpt that doesn't exist, or states a number
+its cited excerpts never mention is unsupported whatever the judge says. Citation validity and abstention
+correctness never involve the LLM.
 """
 
 from __future__ import annotations
@@ -25,6 +26,12 @@ CORRECTNESS_SCORE = {"correct": 1.0, "partial": 0.5, "incorrect": 0.0}
 
 _CITE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
 _CITE_GROUP = re.compile(r"(?:\s*\[\d+(?:\s*,\s*\d+)*\])+")
+_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+_NUMBER_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+    "ten": 10, "eleven": 11, "twelve": 12, "fifteen": 15, "twenty": 20, "thirty": 30, "forty": 40,
+    "forty-five": 45, "sixty": 60, "ninety": 90, "hundred": 100,
+}  # fmt: skip
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\"'“])")
 
 STATEMENT_SYSTEM = """You check statements taken from an answer about a contract.
@@ -223,18 +230,39 @@ class OllamaJudge:
         return grade if grade.correctness in CORRECTNESS_SCORE else None
 
 
+def _numbers(text: str, include_words: bool) -> set[str]:
+    found = {m.group().replace(",", "").rstrip(".") for m in _NUMBER.finditer(text)}
+    if include_words:
+        found |= {
+            str(v) for word, v in _NUMBER_WORDS.items() if re.search(rf"\b{word}\b", text, re.IGNORECASE)
+        }
+    return {n.removesuffix(".00") for n in found}
+
+
+def unsupported_numbers(statement: str, excerpts: Sequence[str]) -> list[str]:
+    """Digits in a statement (amounts, days, dates, section numbers) that its cited excerpts never mention,
+    as digits or as number words. Such a number is an added specific, so the statement is unsupported.
+    Number words in the statement are ignored ("one party" is not a quantity)."""
+    return sorted(_numbers(statement, include_words=False) - _numbers(" ".join(excerpts), include_words=True))
+
+
+def statement_check(st: Statement, verdict: Verdict, chunks: Sequence[Chunk]) -> tuple[bool, list[str]]:
+    """(supported, unsupported numbers). Supported needs the judge's yes, real citations in the answer text,
+    and every number in the statement present in the cited excerpts."""
+    if not (verdict.supported and st.cited and all(1 <= n <= len(chunks) for n in st.cited)):
+        return False, []
+    missing = unsupported_numbers(st.text, [chunks[n - 1].text for n in st.cited])
+    return not missing, missing
+
+
 def faithfulness_score(
-    statements: Sequence[Statement], verdicts: Sequence[Verdict], n_chunks: int
+    statements: Sequence[Statement], verdicts: Sequence[Verdict], chunks: Sequence[Chunk]
 ) -> float | None:
-    """Share of statements the judge supports AND that cite at least one real excerpt in the answer text."""
+    """Share of statements that pass `statement_check`."""
     if not statements:
         return None
-    ok = sum(
-        1
-        for st, v in zip(statements, verdicts, strict=True)
-        if v.supported and st.cited and all(1 <= n <= n_chunks for n in st.cited)
-    )
-    return ok / len(statements)
+    checks = [statement_check(st, v, chunks)[0] for st, v in zip(statements, verdicts, strict=True)]
+    return sum(checks) / len(statements)
 
 
 def citation_validity(gen: GenerationResult) -> float | None:
@@ -263,10 +291,14 @@ def score_answer(
     statements = split_statements(gen.answer)
     verdicts = judge.check_statements(question.question, statements, chunks)
     if verdicts is not None and statements:
-        scores.faithfulness = faithfulness_score(statements, verdicts, len(chunks))
+        scores.faithfulness = faithfulness_score(statements, verdicts, chunks)
         scores.answer_relevance = sum(v.on_topic for v in verdicts) / len(verdicts)
         detail["statements"] = [
-            {**st.model_dump(), **v.model_dump(exclude={"id"})}
+            {
+                **st.model_dump(),
+                **v.model_dump(exclude={"id"}),
+                "unsupported_numbers": statement_check(st, v, chunks)[1],
+            }
             for st, v in zip(statements, verdicts, strict=True)
         ]
     if question.answerable:
