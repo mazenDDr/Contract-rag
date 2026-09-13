@@ -1,10 +1,12 @@
 import json
 from collections import Counter
+from io import BytesIO
 from pathlib import Path
 
 import fitz
+import pytest
 
-from contract_rag.ingest.download import CuadRecord, stratified_subset
+from contract_rag.ingest.download import CuadRecord, download_archive, stratified_subset
 
 
 def _records() -> list[CuadRecord]:
@@ -36,14 +38,27 @@ def test_stratified_subset_is_deterministic_and_covers_strata() -> None:
 
 
 def test_cuad_mini_fixture_has_three_readable_contracts() -> None:
-    fixture_root = Path(__file__).parent / "fixtures" / "cuad_mini"
+    repo_root = Path(__file__).resolve().parents[1]
+    fixture_root = repo_root / "tests" / "fixtures" / "cuad_mini"
     records = [json.loads(line) for line in (fixture_root / "manifest.jsonl").read_text().splitlines()]
 
     assert len(records) == 3
     assert len({record["contract_type"] for record in records}) == 3
     for record in records:
-        pdf_path = Path(record["pdf_path"])
-        txt_path = Path(record["txt_path"])
+        pdf_path = repo_root / record["pdf_path"]
+        txt_path = repo_root / record["txt_path"]
         assert txt_path.read_text(encoding="utf-8", errors="replace").strip()
         with fitz.open(pdf_path) as document:
             assert document.page_count > 0
+
+
+def test_download_archive_deletes_corrupt_partial(tmp_path: Path, mocker) -> None:
+    response = BytesIO(b"not the expected archive")
+    response.status = 200
+    mocker.patch("contract_rag.ingest.download.urllib.request.urlopen", return_value=response)
+    destination = tmp_path / "CUAD_v1.zip"
+
+    with pytest.raises(ValueError, match="checksum mismatch"):
+        download_archive("https://example.test/CUAD_v1.zip", destination, expected_md5="0" * 32)
+
+    assert not destination.with_suffix(".zip.part").exists()

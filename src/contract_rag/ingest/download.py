@@ -106,6 +106,7 @@ def download_archive(url: str, destination: Path, expected_md5: str) -> Path:
 
     actual_md5 = file_md5(partial)
     if actual_md5 != expected_md5:
+        partial.unlink()
         raise ValueError(f"CUAD checksum mismatch: expected {expected_md5}, got {actual_md5}")
     os.replace(partial, destination)
     return destination
