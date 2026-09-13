@@ -1,0 +1,16 @@
+questions_path: data/eval/questions.jsonl
+documents_path: data/processed/documents.jsonl
+retrieval_config: configs/retrieval.yaml
+runs_dir: runs
+report_path: docs/ablations.md
+chunkings: [fixed, sentence_window, section]
+dense_models: [bge-small, bge-base, e5-base]
+rerankers: [minilm, bge-reranker-base]
+alpha_grid: [0.2, 0.4, 0.6, 0.8]  # weighted-fusion weight on dense; tuned on dev only
+scopes: [doc, corpus]              # doc: retrieve within the question's contract; corpus: all contracts
+raw_query_controls: true           # doc scope with the contract name left in the query, for comparison
+k_candidates: 50
+k_final: 8
+n_boot: 2000
+seed: 0
+select_top: 8                      # configs picked on dev for full answer evaluation
