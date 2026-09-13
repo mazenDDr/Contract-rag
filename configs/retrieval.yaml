@@ -20,6 +20,11 @@ dense:
       name: intfloat/e5-base-v2
       query_prefix: "query: "
       passage_prefix: "passage: "
+rerankers:
+  bge-reranker-base:
+    name: BAAI/bge-reranker-base
+  minilm:
+    name: cross-encoder/ms-marco-MiniLM-L-6-v2
 smoke_queries:
   - "How much notice is required to terminate the agreement for convenience?"
   - "Which state's law governs the agreement?"

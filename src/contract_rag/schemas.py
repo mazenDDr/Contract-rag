@@ -73,6 +73,8 @@ class EvalQuestion(BaseModel):
     split: Split
     source: Literal["cuad", "handwritten"] = "cuad"
     notes: str = ""
+    # how the question names its contract; retrieval scoped to that contract drops it from the query
+    contract_name: str | None = None
 
 
 # ---------- retrieval ----------

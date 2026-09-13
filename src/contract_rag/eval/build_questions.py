@@ -279,6 +279,7 @@ class Candidate:
     question: str
     reference: str
     evidence: tuple[str, ...]
+    contract_name: str = ""  # the "{name}" inserted into the question
 
 
 def _informative(answer: str) -> bool:
@@ -311,6 +312,7 @@ def derived_candidates(c: Contract) -> Iterator[Candidate]:
                 template.format(name=c.name),
                 reference_answer(c, [category]),
                 tuple(c.spans[category]),
+                c.name,
             )
 
 
@@ -332,6 +334,7 @@ def multi_candidates(c: Contract) -> Iterator[Candidate]:
                 template.format(name=c.name),
                 reference_answer(c, categories),
                 tuple(s for cat in categories for s in c.spans[cat]),
+                c.name,
             )
 
 
@@ -347,6 +350,7 @@ def numeric_candidates(c: Contract) -> Iterator[Candidate]:
                 template.format(name=c.name),
                 reference_answer(c, [category]),
                 tuple(spans),
+                c.name,
             )
 
 
@@ -355,7 +359,7 @@ def unanswerable_candidates(c: Contract) -> Iterator[Candidate]:
         absent = category not in c.present and c.answers.get(category, "").strip().lower() in {"", "no"}
         if absent:
             yield Candidate(
-                c.doc_id, "unanswerable", category, (category,), template.format(name=c.name), "", ()
+                c.doc_id, "unanswerable", category, (category,), template.format(name=c.name), "", (), c.name
             )
 
 
@@ -491,6 +495,7 @@ def build_questions(
             split=split,
             source="cuad",
             notes="replacement after review" if qid in replaced else "",
+            contract_name=cand.contract_name or None,
         )
         for qid, split, cand in numbered
     ]
