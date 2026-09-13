@@ -56,6 +56,7 @@ class MatrixConfig(BaseModel):
     report_path: Path = Path("docs/answer_quality.md")
     split: str = "test"
     bm25_baselines: bool = True
+    select_top: int | None = None  # keep only the top N dev picks (None = all of them)
     extra_configs: list[str] = Field(default_factory=list)
     generator: GeneratorConfig = Field(default_factory=GeneratorConfig)
     judge: JudgeConfig = Field(default_factory=JudgeConfig)
@@ -85,9 +86,11 @@ def parse_config_key(key: str) -> tuple[RetrievalConfig, str]:
     return rc, "raw" if raw_query or scope == "corpus" else "scoped"
 
 
-def choose_configs(summary: dict[str, Any], bm25_baselines: bool, extra: Sequence[str]) -> list[str]:
-    """Dev-selected configurations, the best one per chunking, then a BM25-only baseline per chunking."""
-    keys = list(summary["selected_on_dev"]) + list(summary.get("best_per_chunking", {}).values())
+def choose_configs(
+    summary: dict[str, Any], bm25_baselines: bool, extra: Sequence[str], select_top: int | None = None
+) -> list[str]:
+    """Top dev-selected configurations, the best one per chunking, then a BM25-only baseline per chunking."""
+    keys = list(summary["selected_on_dev"])[:select_top] + list(summary.get("best_per_chunking", {}).values())
     if bm25_baselines:
         for chunking in sorted({parse_config_key(k)[0].chunking for k in keys}):
             baseline = f"{chunking}__bm25__nodense__none__norerank__k8__doc"
@@ -129,7 +132,7 @@ def run(
     (run_dir / "config.yaml").write_text(yaml.safe_dump(json.loads(cfg.model_dump_json()), sort_keys=False))
     index_cfg = IndexConfig.model_validate(yaml.safe_load((repo_root / cfg.retrieval_config).read_text()))
     summary = json.loads((repo_root / cfg.ablation_summary).read_text())
-    keys = choose_configs(summary, cfg.bm25_baselines, cfg.extra_configs)
+    keys = choose_configs(summary, cfg.bm25_baselines, cfg.extra_configs, cfg.select_top)
     parsed = {k: parse_config_key(k) for k in keys}
     lines = (repo_root / cfg.questions_path).read_text().splitlines()
     questions = [

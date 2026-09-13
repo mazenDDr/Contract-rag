@@ -6,6 +6,7 @@ runs_dir: runs
 report_path: docs/answer_quality.md
 split: test
 bm25_baselines: true  # add BM25-only (contract scope) for every chunking among the selected configs
+select_top: 4  # top 4 dev picks; the rest are near-identical fixed-chunk hybrids (~1.5 h saved on a laptop)
 extra_configs: []
 generator:
   model: qwen3.5:4b

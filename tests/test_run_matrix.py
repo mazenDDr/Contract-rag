@@ -31,6 +31,8 @@ def test_parse_config_key_inverts_the_ablation_ids():
     assert parse_config_key(BM25 + "__rawq")[1] == "raw"
     summary = {"selected_on_dev": [HYBRID], "configs": {HYBRID: {}, BM25: {}}}
     assert choose_configs(summary, True, []) == [HYBRID, BM25]
+    two = {"selected_on_dev": [HYBRID, WEIGHTED], "configs": {HYBRID: {}, BM25: {}, WEIGHTED: {}}}
+    assert choose_configs(two, True, [], select_top=1) == [HYBRID, BM25]  # WEIGHTED and its baseline dropped
 
 
 class FakePipeline:
