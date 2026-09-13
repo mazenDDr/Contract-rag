@@ -5,12 +5,14 @@ import pytest
 
 from contract_rag.eval.agreement import agreement_report, cohen_kappa, judge_labels, kappa_band
 from contract_rag.eval.judge import (
-    Claim,
     JudgeConfig,
     OllamaJudge,
+    Statement,
+    Verdict,
     citation_validity,
     faithfulness_score,
     score_answer,
+    split_statements,
 )
 from contract_rag.schemas import Chunk, EvalQuestion, EvalScores, GenerationResult
 
@@ -66,20 +68,39 @@ class QueueClient:
     def chat(self, **kwargs):
         self.calls.append(kwargs)
         content = self.payloads.pop(0)
-        return SimpleNamespace(
-            message=SimpleNamespace(content=content if isinstance(content, str) else json.dumps(content))
-        )
+        text = content if isinstance(content, str) else json.dumps(content)
+        return SimpleNamespace(message=SimpleNamespace(content=text))
 
 
-def test_faithfulness_requires_real_citations():
-    claims = [
-        Claim(claim="90 days notice", cited=[2], supported=True),
-        Claim(claim="Delaware law", cited=[], supported=True),  # judge says yes, but it cites nothing
-        Claim(claim="made up", cited=[9], supported=True),  # cites an excerpt that doesn't exist
-        Claim(claim="wrong", cited=[1], supported=False),
+def verdicts(*flags):
+    return {
+        "verdicts": [
+            {"id": i, "supported": s, "on_topic": t, "reason": ""} for i, (s, t) in enumerate(flags, 1)
+        ]
+    }
+
+
+def test_split_statements_reads_citations_from_the_answer_text():
+    parts = split_statements(
+        "Ninety days' notice is needed [2]. Delaware law governs [1, 2]. It renews yearly."
+    )
+    assert [(p.text, p.cited) for p in parts] == [
+        ("Ninety days' notice is needed", [2]),
+        ("Delaware law governs", [1, 2]),
+        ("It renews yearly", []),
     ]
-    assert faithfulness_score(claims, n_chunks=2) == 0.25
-    assert faithfulness_score([], 2) is None
+    assert split_statements("Ninety days' notice. [2]")[0].cited == [2]  # stray citation joins its sentence
+
+
+def test_faithfulness_guard_ignores_judge_support_without_real_citations():
+    statements = [
+        Statement(text="a", cited=[2]),
+        Statement(text="b", cited=[]),
+        Statement(text="c", cited=[9]),
+    ]
+    judged = [Verdict(id=i, supported=True) for i in (1, 2, 3)]  # the judge says all three are supported
+    assert faithfulness_score(statements, judged, n_chunks=2) == pytest.approx(1 / 3)
+    assert faithfulness_score([], [], 2) is None
 
 
 def test_citation_validity():
@@ -88,20 +109,33 @@ def test_citation_validity():
     assert citation_validity(generation("", [], abstained=True)) is None
 
 
-def test_score_answer_normal_path():
+def test_score_answer_shows_each_statement_only_its_cited_excerpts():
     client = QueueClient(
-        {"claims": [{"claim": "90 days", "cited": [2], "supported": True, "reason": "stated in [2]"}]},
-        {"correctness": "Correct", "relevance": 4, "reason": "matches"},
+        verdicts((True, True), (True, False)), {"correctness": "Correct", "reason": "matches"}
     )
     judge = OllamaJudge(JudgeConfig(), client=client)
+    answer = "Ninety days' notice is needed [2]. Delaware law governs [1]."
     s = score_answer(
-        question(), generation("Ninety days' notice [2].", ["d1::section::00001"]), CHUNKS, judge
+        question(), generation(answer, ["d1::section::00001", "d1::section::00000"]), CHUNKS, judge
     )
-    assert (s.faithfulness, s.answer_correctness, s.answer_relevance) == (1.0, 1.0, 0.75)
+    assert (s.faithfulness, s.answer_relevance, s.answer_correctness) == (1.0, 0.5, 1.0)
     assert s.abstention_correct is True and s.citation_validity == 1.0
+
+    prompt = client.calls[0]["messages"][1]["content"]
+    first, second = prompt.split("---")
+    assert "ninety (90)" in first and "Delaware" not in first  # statement 1 sees only excerpt [2]
+    assert "Delaware" in second and "ninety (90)" not in second
+    assert client.calls[0]["think"] is False and "[2]" not in client.calls[1]["messages"][1]["content"]
     assert json.loads(s.judge_rationale)["grade"]["correctness"] == "correct"
-    assert client.calls[0]["format"]["required"] == ["claims"] and client.calls[0]["think"] is False
-    assert "[2] (no section, p.1)" in client.calls[0]["messages"][1]["content"]
+
+
+def test_uncited_answer_scores_zero_even_if_the_judge_approves():
+    client = QueueClient(verdicts((True, True)), {"correctness": "correct", "reason": ""})
+    s = score_answer(
+        question(), generation("The warranty lasts 3 years.", []), CHUNKS, OllamaJudge(client=client)
+    )
+    assert s.faithfulness == 0.0 and s.citation_validity == 0.0
+    assert "(no excerpts cited)" in client.calls[0]["messages"][1]["content"]
 
 
 def test_abstention_paths_skip_the_llm():
@@ -113,46 +147,34 @@ def test_abstention_paths_skip_the_llm():
     assert judge.calls == 0
 
 
-def test_unanswerable_but_answered_is_flagged_and_checked_for_faithfulness():
-    client = QueueClient(
-        {"claims": [{"claim": "royalty 5%", "cited": [], "supported": False, "reason": "none"}]}
-    )
+def test_missing_or_unparseable_judge_output_leaves_scores_empty():
+    missing = QueueClient(verdicts((True, True)), "not json")  # 2 statements, only 1 verdict
     s = score_answer(
-        question(False), generation("The royalty is 5%.", []), CHUNKS, OllamaJudge(client=client)
+        question(), generation("A [1]. B [2].", ["d1::section::00000"]), CHUNKS, OllamaJudge(client=missing)
     )
-    assert s.abstention_correct is False and s.faithfulness == 0.0 and s.answer_correctness is None
-
-
-def test_unparseable_judge_output_leaves_scores_empty():
-    client = QueueClient("not json", {"correctness": "maybe", "relevance": 9, "reason": ""})
-    s = score_answer(
-        question(), generation("Ninety days [2].", ["d1::section::00001"]), CHUNKS, OllamaJudge(client=client)
-    )
-    assert s.faithfulness is None and s.answer_correctness is None
+    assert s.faithfulness is None and s.answer_relevance is None and s.answer_correctness is None
 
 
 def test_cohen_kappa_and_bands():
     assert cohen_kappa(["y", "y", "n", "n"], ["y", "n", "n", "n"]) == pytest.approx(0.5)
     assert cohen_kappa(["y", "n"], ["y", "n"]) == 1.0
-    assert (
-        kappa_band(0.73) == "substantial"
-        and kappa_band(0.1) == "slight"
-        and kappa_band(0.9) == "almost perfect"
-    )
+    assert kappa_band(0.73) == "substantial"
+    assert kappa_band(0.1) == "slight"
+    assert kappa_band(0.9) == "almost perfect"
 
 
-def test_agreement_report_against_human_labels():
+def test_agreement_report_against_reference_labels():
     judged = {
         "q1": EvalScores(qid="q1", config_id="c", faithfulness=1.0, answer_correctness=1.0),
         "q2": EvalScores(qid="q2", config_id="c", faithfulness=0.5, answer_correctness=0.5),
         "q3": EvalScores(qid="q3", config_id="c", faithfulness=1.0, answer_correctness=0.0),
     }
-    human = {
+    labels = {
         "q1": {"faithful": "yes", "correct": "yes"},
         "q2": {"faithful": "no", "correct": "no"},
         "q3": {"faithful": "yes", "correct": "no"},
     }
     assert judge_labels(judged["q2"]) == {"faithful": "no", "correct": "partial"}
-    report = agreement_report(human, judged)
+    report = agreement_report(labels, judged)
     assert report["faithful"]["agreement"] == 1.0 and report["faithful"]["kappa"] == 1.0
     assert report["correct"]["n"] == 3 and report["correct"]["agreement"] == pytest.approx(0.667, abs=1e-3)

@@ -1,0 +1,22 @@
+{"qid": "q0001", "faithful": "yes", "correct": "yes", "severity": null, "note": "Every audit and inspection claim matches its cited excerpt.", "labeler": "frontier-llm"}
+{"qid": "q0002", "faithful": "no", "correct": "partial", "severity": "major", "note": "Says software is returned 'within a reasonable time'; excerpt [4] says immediately. Purchase price stated as fair market value; [5] says cost or fair market value, whichever is less.", "labeler": "frontier-llm"}
+{"qid": "q0003", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0004", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0006", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0014", "faithful": "no", "correct": "partial", "severity": "major", "note": "Cited excerpts [1] (competitor definition, reservation of rights) and [2] (termination for default) do not state either license claim; the second claim reverses who licenses what.", "labeler": "frontier-llm"}
+{"qid": "q0015", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0016", "faithful": "no", "correct": "partial", "severity": "minor", "note": "'as specified in Article 5.1' is not in excerpt [5]. Misses the 180-day notice for firm (FTS) service.", "labeler": "frontier-llm"}
+{"qid": "q0017", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0018", "faithful": "yes", "correct": "partial", "severity": null, "note": "Facts are supported, but it concludes there is no revenue sharing, contrary to the lawyer's label (income-based fee, 50% rebate split).", "labeler": "frontier-llm"}
+{"qid": "q0019", "faithful": "yes", "correct": "yes", "severity": null, "note": "Omits the exclusive supply purchase, but states the main exclusive license.", "labeler": "frontier-llm"}
+{"qid": "q0020", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0021", "faithful": "yes", "correct": "yes", "severity": null, "note": "Matches the reference; note that elsewhere the contract lists Section 4.2 among the provisions surviving termination.", "labeler": "frontier-llm"}
+{"qid": "q0022", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0023", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0024", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0025", "faithful": "no", "correct": "yes", "severity": "minor", "note": "Adds 'days' to a redacted period ('within ***'); the unit is not in the excerpt.", "labeler": "frontier-llm"}
+{"qid": "q0026", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0027", "faithful": "no", "correct": "yes", "severity": "major", "note": "No citation at all; the fact (3 years) is right but unverifiable from the answer.", "labeler": "frontier-llm"}
+{"qid": "q0028", "faithful": "no", "correct": "partial", "severity": "minor", "note": "Adds 'from the date of execution', which is not in the excerpts. Gives the 12-month duration, not the end date (9/9/06).", "labeler": "frontier-llm"}
+{"qid": "q0029", "faithful": "yes", "correct": "yes", "severity": null, "note": "", "labeler": "frontier-llm"}
+{"qid": "q0030", "faithful": "no", "correct": "partial", "severity": "minor", "note": "'Section 2.10' is not in excerpt [4]. Concludes there is no binding minimum; the lawyer labels the minimum monthly allocation as a minimum commitment.", "labeler": "frontier-llm"}

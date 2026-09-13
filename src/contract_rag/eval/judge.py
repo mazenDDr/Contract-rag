@@ -1,79 +1,82 @@
 """LLM-as-judge for answer quality, run locally through Ollama.
 
-Two focused calls per answer instead of one vague score:
-- faithfulness: split the answer into atomic claims and check each against the excerpts it cites
-- grading: correctness against the lawyer-derived reference answer, and relevance to the question
+The answer is split into statements in code, each with the excerpt numbers it cites in the answer text. The
+judge then checks every statement against ONLY the excerpts that statement cites, so it cannot find support
+somewhere else, and marks whether the statement addresses the question. A second call grades correctness
+against the lawyer-derived reference answer.
 
-Citation validity and abstention correctness are computed in code, without the LLM, and a claim the judge
-marks "supported" still counts as unsupported unless it cites at least one real excerpt.
+Deterministic guards: a statement that cites nothing, or cites an excerpt that doesn't exist, is unsupported
+whatever the judge says. Citation validity and abstention correctness never involve the LLM.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import Sequence
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from contract_rag.generation.prompts import format_context
 from contract_rag.schemas import Chunk, EvalQuestion, EvalScores, GenerationResult
 
 CORRECTNESS_SCORE = {"correct": 1.0, "partial": 0.5, "incorrect": 0.0}
 
-FAITHFULNESS_SYSTEM = """You verify answers about contracts against the numbered excerpts they cite.
+_CITE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\"'“])")
 
-Split the answer into atomic claims, one fact per claim. For each claim give:
-- "claim": the claim in a few words
-- "cited": the excerpt numbers the answer cites for that claim ([] if it cites none)
-- "supported": true only if the cited excerpts state or directly imply the claim. A claim with no citation is
-  not supported. Do not use outside knowledge. Judge facts, not style.
-- "reason": one short sentence
+STATEMENT_SYSTEM = """You check statements taken from an answer about a contract.
 
-Respond as JSON: {"claims": [{"claim": "...", "cited": [1], "supported": true, "reason": "..."}]}"""
+Each numbered statement comes with ONLY the excerpts that the statement cites. For each statement give:
+- "supported": true only if every fact in the statement is stated in, or directly implied by, its own
+  excerpts. Any added specific that those excerpts do not contain (a section number, a unit of time, a date,
+  an amount, a party, a condition) makes the statement unsupported. A statement with no excerpts is
+  unsupported.
+- "on_topic": true if the statement helps answer the question; false if it is about something else.
+- "reason": one short sentence.
 
-GRADING_SYSTEM = """You grade an answer to a question about a contract.
+Respond as JSON: {"verdicts": [{"id": 1, "supported": true, "on_topic": true, "reason": "..."}]}"""
+
+GRADING_SYSTEM = """You grade whether an answer to a question about a contract is correct.
 
 You are given the question, a reference answer derived from a lawyer's annotation, the clause text the lawyer
-highlighted, and the answer to grade.
-- "correctness": "correct" if the answer states the reference's key facts without contradicting them;
-  "partial" if it gets some key facts but misses or blurs others; "incorrect" if it contradicts the reference,
-  misses the key facts, or claims the information is not available.
-- "relevance": 1 to 5, how directly the answer addresses the question (5 = fully on point, nothing off-topic;
-  1 = off-topic).
+highlighted, and the answer. The key facts are the ones that directly answer the question; the highlighted
+clauses may contain extra context, so do not require facts the question did not ask for.
+- "correctness": "correct" if the answer states the key facts and contradicts nothing in the reference;
+  "partial" if it states some key facts but misses, blurs or contradicts others; "incorrect" if it misses the
+  key facts, contradicts them, or says the information is not available.
 - "reason": one or two short sentences.
 
-Respond as JSON: {"correctness": "correct", "relevance": 5, "reason": "..."}"""
+Respond as JSON: {"correctness": "correct", "reason": "..."}"""
 
-FAITHFULNESS_SCHEMA = {
+STATEMENT_SCHEMA = {
     "type": "object",
     "properties": {
-        "claims": {
+        "verdicts": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
-                    "claim": {"type": "string"},
-                    "cited": {"type": "array", "items": {"type": "integer"}},
+                    "id": {"type": "integer"},
                     "supported": {"type": "boolean"},
+                    "on_topic": {"type": "boolean"},
                     "reason": {"type": "string"},
                 },
-                "required": ["claim", "cited", "supported", "reason"],
+                "required": ["id", "supported", "on_topic", "reason"],
             },
         }
     },
-    "required": ["claims"],
+    "required": ["verdicts"],
 }
 
 GRADING_SCHEMA = {
     "type": "object",
     "properties": {
         "correctness": {"type": "string", "enum": list(CORRECTNESS_SCORE)},
-        "relevance": {"type": "integer", "minimum": 1, "maximum": 5},
         "reason": {"type": "string"},
     },
-    "required": ["correctness", "relevance", "reason"],
+    "required": ["correctness", "reason"],
 }
 
 
@@ -81,23 +84,41 @@ class JudgeConfig(BaseModel):
     model: str = "gemma4:12b"
     host: str | None = None  # None -> $OLLAMA_HOST or http://localhost:11434
     temperature: float = 0.0
-    num_ctx: int = 8192
+    num_ctx: int = 12288  # each statement carries its full cited excerpts
     max_tokens: int = 1500
     seed: int = 0
     think: bool | None = False  # gemma4 can think; reasoning would eat the output budget. None = don't send
 
 
-class Claim(BaseModel):
-    claim: str
+class Statement(BaseModel):
+    text: str
     cited: list[int] = []
+
+
+class Verdict(BaseModel):
+    id: int
     supported: bool
+    on_topic: bool = True
     reason: str = ""
 
 
 class Grade(BaseModel):
     correctness: str
-    relevance: int
     reason: str = ""
+
+
+def split_statements(answer: str) -> list[Statement]:
+    """Sentences of the answer with the excerpt numbers each one cites. A citation group that ends up
+    alone after a sentence break ("... notice. [2]") is attached to the previous sentence."""
+    statements: list[Statement] = []
+    for sentence in _SENTENCE_END.split(answer.strip()):
+        cited = sorted({int(n) for group in _CITE.findall(sentence) for n in group.split(",")})
+        text = _CITE.sub("", sentence).strip(" .;")
+        if text:
+            statements.append(Statement(text=text, cited=cited))
+        elif cited and statements:
+            statements[-1].cited = sorted(set(statements[-1].cited) | set(cited))
+    return statements
 
 
 class OllamaJudge:
@@ -137,24 +158,43 @@ class OllamaJudge:
             return None
         return data if isinstance(data, dict) else None
 
-    def claims(self, answer: str, chunks: Sequence[Chunk]) -> list[Claim] | None:
-        user = f"Excerpts:\n\n{format_context(chunks)}\n\nAnswer to verify:\n{answer}"
-        data = self._chat(FAITHFULNESS_SYSTEM, user, FAITHFULNESS_SCHEMA)
+    def check_statements(
+        self, question: str, statements: Sequence[Statement], chunks: Sequence[Chunk]
+    ) -> list[Verdict] | None:
+        """One verdict per statement, in order; None if the judge's output is unusable."""
+        if not statements:
+            return []
+        parts = []
+        for i, st in enumerate(statements, start=1):
+            excerpts = [
+                f"[{n}] {' > '.join(chunks[n - 1].section_path[-2:]) or 'no section'}\n{chunks[n - 1].text}"
+                for n in st.cited
+                if 1 <= n <= len(chunks)
+            ]
+            parts.append(
+                f"Statement {i}: {st.text}\nExcerpts cited by statement {i}:\n"
+                + ("\n\n".join(excerpts) or "(no excerpts cited)")
+            )
+        user = f"Question: {question}\n\n" + "\n\n---\n\n".join(parts)
+        data = self._chat(STATEMENT_SYSTEM, user, STATEMENT_SCHEMA)
         if data is None:
             return None
-        out = []
-        for raw in data.get("claims", []):
+        by_id: dict[int, Verdict] = {}
+        for raw in data.get("verdicts", []):
             try:
-                out.append(Claim.model_validate(raw))
+                verdict = Verdict.model_validate(raw)
             except ValidationError:
                 continue
-        return out
+            by_id.setdefault(verdict.id, verdict)
+        if any(i not in by_id for i in range(1, len(statements) + 1)):
+            return None
+        return [by_id[i] for i in range(1, len(statements) + 1)]
 
     def grade(self, question: str, reference: str, evidence: Sequence[str], answer: str) -> Grade | None:
         clauses = "\n".join(f"- {span}" for span in evidence)[:3000] or "(none)"
         user = (
             f"Question: {question}\n\nReference answer: {reference or '(none)'}\n\n"
-            f"Lawyer-highlighted clause text:\n{clauses}\n\nAnswer to grade:\n{answer}"
+            f"Lawyer-highlighted clause text:\n{clauses}\n\nAnswer to grade:\n{_CITE.sub('', answer)}"
         )
         data = self._chat(GRADING_SYSTEM, user, GRADING_SCHEMA)
         if data is None:
@@ -164,18 +204,21 @@ class OllamaJudge:
         except ValidationError:
             return None
         grade.correctness = grade.correctness.strip().lower()
-        if grade.correctness not in CORRECTNESS_SCORE:
-            return None
-        grade.relevance = min(5, max(1, grade.relevance))
-        return grade
+        return grade if grade.correctness in CORRECTNESS_SCORE else None
 
 
-def faithfulness_score(claims: Sequence[Claim], n_chunks: int) -> float | None:
-    """Share of claims that the judge supports AND that cite at least one real excerpt."""
-    if not claims:
+def faithfulness_score(
+    statements: Sequence[Statement], verdicts: Sequence[Verdict], n_chunks: int
+) -> float | None:
+    """Share of statements the judge supports AND that cite at least one real excerpt in the answer text."""
+    if not statements:
         return None
-    ok = sum(1 for c in claims if c.supported and c.cited and all(1 <= i <= n_chunks for i in c.cited))
-    return ok / len(claims)
+    ok = sum(
+        1
+        for st, v in zip(statements, verdicts, strict=True)
+        if v.supported and st.cited and all(1 <= n <= n_chunks for n in st.cited)
+    )
+    return ok / len(statements)
 
 
 def citation_validity(gen: GenerationResult) -> float | None:
@@ -193,7 +236,7 @@ def score_answer(
     scores = EvalScores(qid=question.qid, config_id=gen.config_id, judge_model=judge.model)
     scores.abstention_correct = gen.abstained == (not question.answerable)
     scores.citation_validity = citation_validity(gen)
-    detail: dict[str, Any] = {"claims": None, "grade": None}
+    detail: dict[str, Any] = {"statements": None, "grade": None}
 
     if gen.abstained or not gen.answer.strip():
         if question.answerable:
@@ -201,15 +244,19 @@ def score_answer(
         scores.judge_rationale = json.dumps(detail)
         return scores
 
-    claims = judge.claims(gen.answer, chunks)
-    if claims is not None:
-        scores.faithfulness = faithfulness_score(claims, len(chunks))
-        detail["claims"] = [c.model_dump() for c in claims]
+    statements = split_statements(gen.answer)
+    verdicts = judge.check_statements(question.question, statements, chunks)
+    if verdicts is not None and statements:
+        scores.faithfulness = faithfulness_score(statements, verdicts, len(chunks))
+        scores.answer_relevance = sum(v.on_topic for v in verdicts) / len(verdicts)
+        detail["statements"] = [
+            {**st.model_dump(), **v.model_dump(exclude={"id"})}
+            for st, v in zip(statements, verdicts, strict=True)
+        ]
     if question.answerable:
         grade = judge.grade(question.question, question.reference_answer, question.evidence_spans, gen.answer)
         if grade is not None:
             scores.answer_correctness = CORRECTNESS_SCORE[grade.correctness]
-            scores.answer_relevance = (grade.relevance - 1) / 4
             detail["grade"] = grade.model_dump()
     scores.judge_rationale = json.dumps(detail, ensure_ascii=False)
     return scores
