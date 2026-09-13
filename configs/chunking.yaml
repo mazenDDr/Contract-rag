@@ -1,0 +1,12 @@
+documents_path: data/processed/documents.jsonl
+blocks_path: data/processed/blocks.jsonl
+output_dir: data/processed/chunks
+stats_path: data/processed/chunk_stats.json
+encoding_name: cl100k_base
+fixed:
+  max_tokens: 512
+  overlap_tokens: 64
+sentence_window:
+  window_size: 3
+section:
+  max_tokens: 512

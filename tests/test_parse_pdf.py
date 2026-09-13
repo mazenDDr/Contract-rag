@@ -5,7 +5,7 @@ import pymupdf
 
 from contract_rag.ingest.download import CuadRecord
 from contract_rag.ingest.normalize import whitespace_equivalent
-from contract_rag.ingest.parse_pdf import parse_pdf, table_to_markdown
+from contract_rag.ingest.parse_pdf import LayoutBlock, _classify, parse_pdf, table_to_markdown
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = REPO_ROOT / "tests" / "fixtures" / "cuad_mini"
@@ -65,3 +65,34 @@ def test_table_to_markdown_normalizes_cells_and_escapes_pipes() -> None:
     markdown = table_to_markdown([["Fee", "Amount"], ["Base | recurring", "$ 10"]])
 
     assert markdown == "| Fee | Amount |\n| --- | --- |\n| Base \\| recurring | $ 10 |"
+
+
+def _layout(text: str) -> LayoutBlock:
+    return LayoutBlock(
+        page=1,
+        bbox=(72.0, 72.0, 400.0, 90.0),
+        text=text,
+        max_font_size=14.0,
+        bold_ratio=1.0,
+    )
+
+
+def test_heading_title_case_allows_minor_words() -> None:
+    units = _classify(_layout("2. Compensation and Expenses."), body_size=10.0)
+
+    assert [(unit.block_type, unit.text) for unit in units] == [("heading", "2. Compensation and Expenses.")]
+
+
+def test_large_level_one_numbers_are_not_headings() -> None:
+    for text in ("1820 Gateway Drive", "2020 Annual Fee", "75 Dollars"):
+        units = _classify(_layout(text), body_size=10.0)
+
+        assert [unit.block_type for unit in units] == ["paragraph"]
+
+
+def test_table_of_contents_line_is_other_not_heading() -> None:
+    units = _classify(_layout("2. Compensation and Expenses........ 4"), body_size=10.0)
+
+    assert [(unit.block_type, unit.text) for unit in units] == [
+        ("other", "2. Compensation and Expenses........ 4")
+    ]
