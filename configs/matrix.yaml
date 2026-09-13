@@ -1,0 +1,18 @@
+ablation_summary: runs/ablation-v1/summary.json  # configs are the ones selected on dev in the ablation
+questions_path: data/eval/questions.jsonl
+documents_path: data/processed/documents.jsonl
+retrieval_config: configs/retrieval.yaml
+runs_dir: runs
+report_path: docs/answer_quality.md
+split: test
+bm25_baselines: true  # add BM25-only (contract scope) for every chunking among the selected configs
+select_top: 4  # top 4 dev picks; the rest are near-identical fixed-chunk hybrids (~1.5 h saved on a laptop)
+extra_configs: []
+generator:
+  model: qwen3.5:4b
+judge:
+  model: gemma4:12b
+  think: false
+n_boot: 2000
+seed: 0
+reload_every: 10  # unload the Ollama model every 10 fresh calls; its server grows by GBs on a 24 GB laptop
