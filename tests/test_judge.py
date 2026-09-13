@@ -92,6 +92,26 @@ def test_split_statements_reads_citations_from_the_answer_text():
     assert split_statements("Ninety days' notice. [2]")[0].cited == [2]  # stray citation joins its sentence
 
 
+def test_split_statements_separates_clauses_that_cite_different_excerpts():
+    answer = (
+        "Names must be assigned within thirty (30) days [3], software returned within a reasonable time [4], "
+        "and leases assigned on demand [6][8]. It also survives termination."
+    )
+    parts = split_statements(answer)
+    assert [(p.text, p.cited) for p in parts] == [
+        ("Names must be assigned within thirty (30) days", [3]),
+        ("software returned within a reasonable time", [4]),
+        ("leases assigned on demand", [6, 8]),
+        ("It also survives termination", []),
+    ]
+    # an uncited sentence before a cited one stays uncited
+    parts = split_statements("Delaware law applies. Notice is ninety days [2].")
+    assert [(p.text, p.cited) for p in parts] == [
+        ("Delaware law applies", []),
+        ("Notice is ninety days", [2]),
+    ]
+
+
 def test_faithfulness_guard_ignores_judge_support_without_real_citations():
     statements = [
         Statement(text="a", cited=[2]),

@@ -24,6 +24,7 @@ from contract_rag.schemas import Chunk, EvalQuestion, EvalScores, GenerationResu
 CORRECTNESS_SCORE = {"correct": 1.0, "partial": 0.5, "incorrect": 0.0}
 
 _CITE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+_CITE_GROUP = re.compile(r"(?:\s*\[\d+(?:\s*,\s*\d+)*\])+")
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\"'“])")
 
 STATEMENT_SYSTEM = """You check statements taken from an answer about a contract.
@@ -107,17 +108,32 @@ class Grade(BaseModel):
     reason: str = ""
 
 
+def _clean(text: str) -> str:
+    text = text.strip(" ,;.\n")
+    return re.sub(r"^(?:and|or|but|while|and also)\s+", "", text, flags=re.IGNORECASE).strip()
+
+
 def split_statements(answer: str) -> list[Statement]:
-    """Sentences of the answer with the excerpt numbers each one cites. A citation group that ends up
-    alone after a sentence break ("... notice. [2]") is attached to the previous sentence."""
+    """Clauses of the answer, each with the excerpt numbers that directly follow it.
+
+    "A within 30 days [3], B within a reasonable time [4]." becomes two statements, so each clause is
+    checked against its own excerpt only. Sentences with no citation become their own (uncited) statements;
+    a citation group left alone after a sentence break is attached to the previous statement."""
     statements: list[Statement] = []
-    for sentence in _SENTENCE_END.split(answer.strip()):
-        cited = sorted({int(n) for group in _CITE.findall(sentence) for n in group.split(",")})
-        text = _CITE.sub("", sentence).strip(" .;")
-        if text:
-            statements.append(Statement(text=text, cited=cited))
-        elif cited and statements:
-            statements[-1].cited = sorted(set(statements[-1].cited) | set(cited))
+    pos = 0
+    for match in _CITE_GROUP.finditer(answer):
+        cited = sorted({int(n) for group in _CITE.findall(match.group()) for n in group.split(",")})
+        sentences = [_clean(s) for s in _SENTENCE_END.split(answer[pos : match.start()])]
+        sentences = [s for s in sentences if s]
+        pos = match.end()
+        if not sentences:
+            if statements:
+                statements[-1].cited = sorted(set(statements[-1].cited) | set(cited))
+            continue
+        statements.extend(Statement(text=s) for s in sentences[:-1])
+        statements.append(Statement(text=sentences[-1], cited=cited))
+    tail = [_clean(s) for s in _SENTENCE_END.split(answer[pos:])]
+    statements.extend(Statement(text=s) for s in tail if s)
     return statements
 
 
