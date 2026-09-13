@@ -1,0 +1,57 @@
+{
+  "questions": 100,
+  "by_split_and_type": {
+    "dev": {
+      "multi_span": 5,
+      "numeric": 3,
+      "unanswerable": 4,
+      "cuad_derived": 18
+    },
+    "test": {
+      "multi_span": 10,
+      "numeric": 7,
+      "unanswerable": 11,
+      "cuad_derived": 42
+    }
+  },
+  "categories": {
+    "Audit Rights": 7,
+    "Insurance": 7,
+    "Warranty Duration": 6,
+    "Non-Compete": 6,
+    "Post-Termination Services": 5,
+    "Renewal Term": 5,
+    "Cap On Liability": 5,
+    "Revenue/Profit Sharing": 5,
+    "Minimum Commitment": 5,
+    "Notice Period To Terminate Renewal": 4,
+    "Effective Date": 4,
+    "Expiration Date": 4,
+    "License Grant": 3,
+    "Governing Law": 3,
+    "Exclusivity": 3,
+    "Termination For Convenience": 3,
+    "Change Of Control": 3,
+    "Anti-Assignment": 3,
+    "Ip Ownership Assignment": 3,
+    "Anti-Assignment + Change Of Control": 2,
+    "Expiration Date + Renewal Term": 2,
+    "Termination For Convenience + Post-Termination Services": 2,
+    "Liquidated Damages": 2,
+    "Minimum Commitment + Revenue/Profit Sharing": 2,
+    "License Grant + Non-Transferable License": 1,
+    "Exclusivity + Non-Compete": 1,
+    "Non-Disparagement": 1,
+    "Source Code Escrow": 1,
+    "No-Solicit Of Employees": 1,
+    "Most Favored Nation": 1
+  },
+  "documents_used": 68,
+  "documents_available": {
+    "dev": 30,
+    "test": 70
+  },
+  "shortfalls": {},
+  "evidence_spans_dropped_unaligned": 7,
+  "seed": 13
+}
