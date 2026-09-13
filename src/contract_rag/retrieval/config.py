@@ -31,12 +31,19 @@ class DenseConfig(BaseModel):
     models: dict[str, DenseModelConfig] = Field(default_factory=dict)
 
 
+class RerankerConfig(BaseModel):
+    name: str  # sentence-transformers CrossEncoder model id
+    batch_size: int = Field(default=32, gt=0)
+    max_length: int = Field(default=512, gt=0)
+
+
 class IndexConfig(BaseModel):
     chunks_dir: Path = Path("data/processed/chunks")
     index_dir: Path = Path("indexes")
     strategies: list[StrategyName] = Field(default_factory=lambda: ["fixed", "sentence_window", "section"])
     bm25: BM25Config = Field(default_factory=BM25Config)
     dense: DenseConfig = Field(default_factory=DenseConfig)
+    rerankers: dict[str, RerankerConfig] = Field(default_factory=dict)
     smoke_queries: list[str] = Field(default_factory=list)
 
 
