@@ -88,11 +88,11 @@ class RetrievedChunk(BaseModel):
 class RetrievalConfig(BaseModel):
     chunking: ChunkStrategy
     sparse: bool = True
-    dense_model: str | None = None  # "bge-large" | "e5-large" | "oai-3-large" | None
+    dense_model: str | None = None  # "bge-small" | "bge-base" | "e5-base" | None
     fusion: Literal["none", "rrf", "weighted"] = "none"
     fusion_alpha: float = 0.5  # weight on dense for "weighted"
     rrf_k: int = 60
-    reranker: str | None = None  # "bge-reranker-v2-m3" | "cohere" | None
+    reranker: str | None = None  # "bge-reranker-base" | "minilm" | None
     k_candidates: int = 50  # per-retriever depth before fusion/rerank
     k_final: int = 8  # chunks handed to the generator
     doc_filter: bool = True  # scope retrieval to the question's doc_id when present
