@@ -145,12 +145,19 @@ def test_run_end_to_end_writes_scores_report_and_resumes(tmp_path):
     assert summary["meta"]["configs"] == n_configs and len(summary["configs"]) == n_configs
     lines = (tmp_path / "runs/r1/scores.jsonl").read_text().splitlines()
     assert len(lines) == n_configs * 4
-    assert len(summary["selected_on_dev"]) == 3
+    selected = summary["selected_on_dev"]
+    assert 1 <= len(selected) <= 3
+    # the four contracts are identical, so many configurations tie on dev and are folded, never selected twice
+    folded = [k for key in selected for k in summary["configs"][key].get("tied_on_dev", [])]
+    assert folded and not set(folded) & set(selected)
+    assert summary["meta"]["candidate_pool"]["section"]["median_chunks"] == 4
     assert (tmp_path / "docs/ablations.md").read_text().startswith("# Retrieval ablations")
     assert any(c["comparison"].startswith("section: drop contract name") for c in summary["comparisons"])
     assert summary["meta"]["reranker_pairs_scored"]["overlap"] == scorer.pairs  # no pair scored twice
 
     before = scorer.pairs
-    run(cfg, tmp_path, run_dir=tmp_path / "runs" / "r1", **kwargs)  # resume: nothing left to do
+    resumed = run(cfg, tmp_path, run_dir=tmp_path / "runs" / "r1", **kwargs)  # resume: nothing left to do
     assert len((tmp_path / "runs/r1/scores.jsonl").read_text().splitlines()) == len(lines)
+    assert resumed["latency_ms"] == summary["latency_ms"]  # re-summarizing keeps the grid's measurements
+    assert resumed["meta"]["minutes"] == summary["meta"]["minutes"]
     assert scorer.pairs == before  # finished configs are skipped; alpha tuning uses no reranker

@@ -321,8 +321,24 @@ def summarize(
     def dev_rank(key: str) -> tuple[float, float]:
         return (table[key]["dev"]["context_recall"]["mean"], table[key]["dev"]["mrr"]["mean"])
 
+    signatures: dict[str, tuple] = {}
+
+    def dev_signature(key: str) -> tuple:
+        if key not in signatures:
+            dev = sorted((s for s in scores[key] if splits[s.qid] == "dev"), key=lambda s: s.qid)
+            signatures[key] = tuple((s.qid, s.context_recall, s.mrr) for s in dev)
+        return signatures[key]
+
+    # A configuration that scores the same as a selected one on every dev question is folded into it:
+    # under contract scope a reranker often sees the whole contract, so the first stage stops mattering.
     scoped = [k for k, (rc, mode) in by_key.items() if rc.doc_filter and mode == "scoped"]
-    selected = sorted(scoped, key=dev_rank, reverse=True)[: cfg.select_top]
+    selected: list[str] = []
+    for key in sorted(scoped, key=dev_rank, reverse=True):
+        twin = next((k for k in selected if dev_signature(k) == dev_signature(key)), None)
+        if twin is not None:
+            table[twin].setdefault("tied_on_dev", []).append(key)
+        elif len(selected) < cfg.select_top:
+            selected.append(key)
 
     def test_scores(key: str) -> list[EvalScores]:
         return [s for s in scores[key] if splits[s.qid] == "test"]
@@ -398,8 +414,8 @@ def render_report(run_id: str, summary: dict[str, Any], meta: dict[str, Any]) ->
         "## Configurations selected on dev",
         "",
         "| # | Configuration | dev R@8 | dev MRR | test R@1 | test R@5 | test R@8 | test MRR "
-        "| est. ms/query |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| est. ms/query | ties on dev |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for i, key in enumerate(summary["selected_on_dev"], start=1):
         c = t[key]
@@ -407,8 +423,26 @@ def render_report(run_id: str, summary: dict[str, Any], meta: dict[str, Any]) ->
             f"| {i} | {c['description']} | {_fmt(c['dev']['context_recall'])} | {_fmt(c['dev']['mrr'])} | "
             f"{_fmt(c['test']['recall@1'])} | {_fmt(c['test']['recall@5'])} | "
             f"{_fmt(c['test']['context_recall'], True)} | {_fmt(c['test']['mrr'], True)} | "
-            f"{c['est_latency_ms']:.0f} |"
+            f"{c['est_latency_ms']:.0f} | {len(c.get('tied_on_dev', []))} |"
         )
+    lines += [
+        "",
+        "*Ties on dev*: configurations with the same recall and MRR as this one on every dev question. They "
+        "are folded into it rather than taking a slot.",
+    ]
+    if "candidate_pool" in meta:
+        lines += ["", "## Candidate pool vs contract size", ""]
+        for chunking, pool in meta["candidate_pool"].items():
+            lines.append(
+                f"- **{chunking}**: median {pool['median_chunks']} chunks per contract; "
+                f"{pool['share_within_candidates']:.0%} of contracts fit within the {pool['k_candidates']} "
+                "candidates a reranker scores"
+            )
+        lines += [
+            "",
+            "When the whole contract fits in the candidate pool, a contract-scoped reranker scores every "
+            "chunk and its output no longer depends on which retriever produced the candidates.",
+        ]
     lines += [
         "",
         "## What each component contributes (test split, paired difference, 95% CI)",
@@ -474,18 +508,32 @@ def run(
     docs = {d.doc_id: d for d in (Document.model_validate_json(x) for x in doc_lines if x.strip())}
     splits = {q.qid: q.split for q in questions}
     dev = [q for q in questions if q.split == "dev"]
-    labels, label_quality = {}, {}
+    labels, label_quality, candidate_pool = {}, {}, {}
     for chunking in cfg.chunkings:
         chunks = load_chunks(repo_root / index_cfg.chunks_dir / f"{chunking}.jsonl")
         built = build_labels(questions, docs, chunks, chunking)  # type: ignore[arg-type]
         labels[chunking] = {lab.qid: lab for lab in built}
         label_quality[chunking] = alignment_report(built)
+        per_doc: dict[str, int] = defaultdict(int)
+        for c in chunks:
+            per_doc[c.doc_id] += 1
+        sizes = sorted(per_doc.values())
+        candidate_pool[chunking] = {
+            "median_chunks": sizes[len(sizes) // 2],
+            "share_within_candidates": sum(n <= cfg.k_candidates for n in sizes) / len(sizes),
+            "k_candidates": cfg.k_candidates,
+        }
 
     config_hash = hashlib.sha1(cfg.model_dump_json().encode()).hexdigest()[:8]
     run_dir = run_dir or repo_root / cfg.runs_dir / f"{datetime.now():%Y%m%d-%H%M}_{config_hash}"
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "config.yaml").write_text(yaml.safe_dump(json.loads(cfg.model_dump_json()), sort_keys=False))
     scores_path = run_dir / "scores.jsonl"
+    summary_path = run_dir / "summary.json"
+    # a finished run that is re-summarized keeps the grid's compute time, latency and pair counts
+    prior = json.loads(summary_path.read_text()) if summary_path.exists() else None
+    prior_minutes = prior["meta"]["minutes"] if prior else 0.0
+    evaluated = 0
     done: dict[str, list[EvalScores]] = defaultdict(list)
     if scores_path.exists():  # resume
         for line in scores_path.read_text().splitlines():
@@ -505,13 +553,17 @@ def run(
                     continue
                 t0 = time.perf_counter()
                 scores, records = runner.evaluate(rc, mode, questions, labels[rc.chunking])
+                evaluated += 1
                 done[key] = scores
                 sfile.write("".join(s.model_dump_json() + "\n" for s in scores))
                 rfile.write("".join(json.dumps(r) + "\n" for r in records))
                 sfile.flush()
                 log(f"[{i}/{len(items)}] {describe(rc, mode)}: {time.perf_counter() - t0:.1f}s")
-        latency = component_latency(runner.timings, cfg.k_candidates)
-        pairs = {k: s.pairs_scored for k, s in runner.scorers.items()}
+        if prior and not evaluated:  # nothing new ran; alpha tuning alone gives partial, colder timings
+            latency, pairs = prior["latency_ms"], prior["meta"]["reranker_pairs_scored"]
+        else:
+            latency = component_latency(runner.timings, cfg.k_candidates)
+            pairs = {k: s.pairs_scored for k, s in runner.scorers.items()}
     finally:
         runner.close()
 
@@ -521,13 +573,15 @@ def run(
         "dev": len(dev),
         "test": len(questions) - len(dev),
         "configs": len(items),
-        "minutes": (time.perf_counter() - started) / 60,
+        "minutes": prior_minutes
+        + ((time.perf_counter() - started) / 60 if evaluated or not prior_minutes else 0),
         "alphas": {f"{c} · {m}": v for (c, m), v in alphas.items()},
         "label_quality": label_quality,
+        "candidate_pool": candidate_pool,
         "reranker_pairs_scored": pairs,
     }
     summary["meta"] = meta
-    (run_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n")
     report = render_report(run_dir.name, summary, meta)
     (run_dir / "report.md").write_text(report)
     (repo_root / cfg.report_path).parent.mkdir(parents=True, exist_ok=True)
