@@ -132,3 +132,25 @@ def test_build_questions_meets_quotas_and_invariants():
     assert multi.category == "Expiration Date + Renewal Term" and len(multi.evidence_spans) == 2
     governing = [q for q in questions if q.category == "Governing Law"]
     assert all(q.reference_answer == "Delaware" for q in governing)
+
+
+def test_replacement_keeps_the_qid_and_every_other_question():
+    cuad, rows, manifest, documents = _corpus(6)
+    base, _ = build_questions(
+        load_contracts(cuad, rows, manifest, documents), QUOTAS, 13, 0.34, per_doc_cap=3
+    )
+    target = next(q for q in base if q.split == "test" and q.qtype == "cuad_derived")
+    fixed, report = build_questions(
+        load_contracts(cuad, rows, manifest, documents),
+        QUOTAS,
+        13,
+        0.34,
+        per_doc_cap=3,
+        replace={target.qid: "evidence does not answer the question"},
+    )
+    new = next(q for q in fixed if q.qid == target.qid)
+    assert (new.split, new.qtype) == (target.split, target.qtype)
+    assert (new.doc_id, new.category) != (target.doc_id, target.category)
+    assert new.notes == "replacement after review" and target.qid in report["replaced"]
+    others = [q.model_dump() for q in fixed if q.qid != target.qid]
+    assert others == [q.model_dump() for q in base if q.qid != target.qid]

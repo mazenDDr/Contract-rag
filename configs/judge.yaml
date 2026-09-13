@@ -1,0 +1,14 @@
+questions_path: data/eval/questions.jsonl
+documents_path: data/processed/documents.jsonl
+blocks_path: data/processed/blocks.jsonl
+out_dir: runs/judge-calibration
+labels_path: data/eval/judge_labels.jsonl
+split: dev
+limit: 30
+seed: 7
+n_distractors: 3
+generator:
+  model: qwen3.5:4b
+judge:
+  model: gemma4:12b
+  think: false
