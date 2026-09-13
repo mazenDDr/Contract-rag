@@ -250,7 +250,8 @@ def run(
         "questions": len(questions),
         "split": cfg.split,
         "generations_reused": reused,
-        "minutes": round((time.perf_counter() - started) / 60, 1),
+        # this invocation only; a resumed run spans several sessions (and possibly machines)
+        "session_minutes": round((time.perf_counter() - started) / 60, 1),
         "generator": cfg.generator.model,
         "judge": cfg.judge.model,
     }
@@ -316,7 +317,7 @@ def render_report(run_id: str, report: dict[str, Any]) -> str:
         "# Answer quality",
         "",
         f"Run `{run_id}` · {meta['configs']} retrieval configurations × {meta['questions']} {meta['split']} "
-        f"questions · generator `{meta['generator']}`, judge `{meta['judge']}` · {meta['minutes']:.0f} min.",
+        f"questions · generator `{meta['generator']}`, judge `{meta['judge']}`.",
         "",
         "Configurations were selected on dev in the retrieval ablation; BM25-only baselines are added. "
         "Judge scores are best used to compare configurations (calibration: faithfulness κ 0.57 against "
