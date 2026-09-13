@@ -5,11 +5,13 @@ import pytest
 
 from contract_rag.eval.agreement import agreement_report, cohen_kappa, judge_labels, kappa_band
 from contract_rag.eval.judge import (
+    RUBRIC,
     JudgeConfig,
     OllamaJudge,
     Statement,
     Verdict,
     citation_validity,
+    declines,
     faithfulness_score,
     score_answer,
     split_statements,
@@ -146,7 +148,8 @@ def test_citation_validity():
 
 def test_score_answer_shows_each_statement_only_its_cited_excerpts():
     client = QueueClient(
-        verdicts((True, True), (True, False)), {"correctness": "Correct", "reason": "matches"}
+        verdicts((True, True), (True, False)),
+        {"correctness": "Correct", "reason": "matches"},
     )
     judge = OllamaJudge(JudgeConfig(), client=client)
     answer = "Ninety days' notice is needed [2]. Delaware law governs [1]."
@@ -185,7 +188,7 @@ def test_the_judge_sees_the_sentence_window_the_generator_saw():
 
 
 def test_uncited_answer_scores_zero_even_if_the_judge_approves():
-    client = QueueClient(verdicts((True, True)), {"correctness": "correct", "reason": ""})
+    client = QueueClient(verdicts((True, True)), {"correctness": "incorrect", "reason": ""})
     s = score_answer(
         question(), generation("The warranty lasts 3 years.", []), CHUNKS, OllamaJudge(client=client)
     )
@@ -200,6 +203,34 @@ def test_abstention_paths_skip_the_llm():
     correct_refusal = score_answer(question(False), generation("", [], abstained=True), CHUNKS, judge)
     assert correct_refusal.abstention_correct is True and correct_refusal.answer_correctness is None
     assert judge.calls == 0
+
+
+def test_the_answer_text_decides_abstention_and_cited_content_is_graded():
+    judge = OllamaJudge(JudgeConfig(), client=QueueClient())
+    said_no = generation("The agreement does not specify a warranty period.", [])
+    refusal = score_answer(question(False), said_no, CHUNKS, judge)
+    assert refusal.abstention_correct is True and judge.calls == 0  # flag off, but the text refuses
+    assert declines(generation("Notice is ninety days [2].", ["d1::section::00001"])) is False
+
+    graded = QueueClient(verdicts((True, True)), {"correctness": "correct", "reason": ""})
+    flagged = generation("Termination needs ninety days' notice [2].", ["d1::section::00001"], abstained=True)
+    s = score_answer(question(), flagged, CHUNKS, OllamaJudge(client=graded))
+    assert s.abstention_correct is False and s.answer_correctness == 1.0  # the content is graded anyway
+
+
+def test_statement_verdicts_can_be_reused_when_regrading():
+    answer = generation("Ninety days' notice is needed [2].", ["d1::section::00001"])
+    first = score_answer(
+        question(),
+        answer,
+        CHUNKS,
+        OllamaJudge(client=QueueClient(verdicts((True, True)), {"correctness": "incorrect", "reason": ""})),
+    )
+    grade_only = QueueClient({"correctness": "correct", "reason": ""})
+    again = score_answer(question(), answer, CHUNKS, OllamaJudge(client=grade_only), first.judge_rationale)
+    assert len(grade_only.calls) == 1 and "Statement 1" not in grade_only.calls[0]["messages"][1]["content"]
+    assert again.faithfulness == first.faithfulness == 1.0 and again.answer_correctness == 1.0
+    assert json.loads(again.judge_rationale)["rubric"] == RUBRIC
 
 
 def test_missing_or_unparseable_judge_output_leaves_scores_empty():

@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import shutil
 import statistics
 import time
 from collections.abc import Callable, Sequence
@@ -20,7 +21,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field
 
-from contract_rag.eval.judge import JudgeConfig, OllamaJudge, score_answer
+from contract_rag.eval.judge import RUBRIC, JudgeConfig, OllamaJudge, score_answer
 from contract_rag.eval.labels import build_labels
 from contract_rag.eval.retrieval_metrics import aggregate, paired_difference, score_retrieval
 from contract_rag.generation.generator import GeneratorConfig, OllamaGenerator
@@ -64,6 +65,9 @@ class MatrixConfig(BaseModel):
     seed: int = 0
     # Ollama's server grows by gigabytes over hundreds of requests; unloading the model resets it
     reload_every: int = 25
+    # re-grade an earlier run: copy its retrieval and answers, and reuse its statement verdicts so only the
+    # correctness grading runs again
+    reuse_verdicts_from: Path | None = None
 
 
 def parse_config_key(key: str) -> tuple[RetrievalConfig, str]:
@@ -149,6 +153,17 @@ def run(
         labels[chunking] = {lab.qid: lab for lab in build_labels(questions, docs, loaded, chunking)}  # type: ignore[arg-type]
     log(f"{len(keys)} configurations x {len(questions)} {cfg.split} questions")
 
+    prior: dict[tuple[str, str], str | None] = {}
+    if cfg.reuse_verdicts_from is not None:
+        source = repo_root / cfg.reuse_verdicts_from
+        for name in ("retrieval.jsonl", "generation.jsonl"):
+            if not (run_dir / name).exists():
+                shutil.copyfile(source / name, run_dir / name)
+        prior = {
+            (s["config_id"], s["qid"]): s["judge_rationale"] for s in _read_jsonl(source / "scores.jsonl")
+        }
+        log(f"re-grading {source.name}: retrieval and answers copied, {len(prior)} verdict sets to reuse")
+
     # 1) retrieval (resumable)
     retrieval_path = run_dir / "retrieval.jsonl"
     retrieved = {
@@ -217,7 +232,9 @@ def run(
             context = (q.qid, gen.answer, gen.abstained, tuple(record["final"]))
             if context not in judged_context:
                 final_chunks = [chunks[rc.chunking][c] for c in record["final"]]
-                judged_context[context] = score_answer(by_qid[q.qid], gen, final_chunks, judge)
+                judged_context[context] = score_answer(
+                    by_qid[q.qid], gen, final_chunks, judge, prior.get((key, q.qid))
+                )
                 if len(judged_context) % cfg.reload_every == 0:
                     _unload(judge)
             answer = judged_context[context]
@@ -254,6 +271,8 @@ def run(
         "session_minutes": round((time.perf_counter() - started) / 60, 1),
         "generator": cfg.generator.model,
         "judge": cfg.judge.model,
+        "grader": RUBRIC,
+        "verdicts_reused_from": str(cfg.reuse_verdicts_from) if cfg.reuse_verdicts_from else None,
     }
     (run_dir / "summary.json").write_text(json.dumps(report, indent=2) + "\n")
     text = render_report(run_dir.name, report)
@@ -317,8 +336,18 @@ def render_report(run_id: str, report: dict[str, Any]) -> str:
         "# Answer quality",
         "",
         f"Run `{run_id}` · {meta['configs']} retrieval configurations × {meta['questions']} {meta['split']} "
-        f"questions · generator `{meta['generator']}`, judge `{meta['judge']}`.",
+        f"questions · generator `{meta['generator']}`, judge `{meta['judge']}` "
+        f"(grading rubric `{meta.get('grader', 'v4')}`).",
         "",
+        *(
+            [
+                f"Re-graded from `{meta['verdicts_reused_from']}`: same retrieval and answers; statement "
+                "verdicts reused, correctness graded again.",
+                "",
+            ]
+            if meta.get("verdicts_reused_from")
+            else []
+        ),
         "Configurations were selected on dev in the retrieval ablation; BM25-only baselines are added. "
         "Judge scores are best used to compare configurations (calibration: faithfulness κ 0.57 against "
         "reference labels). Brackets are 95% bootstrap intervals.",

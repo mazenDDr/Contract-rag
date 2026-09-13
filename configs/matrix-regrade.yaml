@@ -1,0 +1,21 @@
+# Re-grade the T11 answer-quality run with the key-facts rubric (judge.RUBRIC). Retrieval and answers are
+# copied from runs/matrix-v1 and its statement verdicts are reused, so only correctness is graded again.
+# Run: PYTHONPATH=src .venv/bin/python scripts/run_matrix.py --config configs/matrix-regrade.yaml --run-dir runs/matrix-v2
+ablation_summary: runs/ablation-v1/summary.json
+questions_path: data/eval/questions.jsonl
+documents_path: data/processed/documents.jsonl
+retrieval_config: configs/retrieval.yaml
+runs_dir: runs
+report_path: docs/answer_quality.md
+split: test
+bm25_baselines: true
+select_top: 4
+generator:
+  model: qwen3.5:4b
+judge:
+  model: gemma4:12b
+  think: false
+n_boot: 2000
+seed: 0
+reload_every: 10
+reuse_verdicts_from: runs/matrix-v1

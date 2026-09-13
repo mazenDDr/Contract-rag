@@ -166,6 +166,50 @@ def test_run_reuses_identical_contexts_resumes_and_writes_a_report(tmp_path):
     assert len(scores.read_text().splitlines()) == 2
 
 
+def test_regrading_reuses_answers_and_statement_verdicts(tmp_path):
+    _write_corpus(tmp_path)
+    paths = {
+        "ablation_summary": "summary.json",
+        "questions_path": "data/questions.jsonl",
+        "documents_path": "data/documents.jsonl",
+        "retrieval_config": "retrieval.yaml",
+        "report_path": "docs/answer_quality.md",
+        "n_boot": 20,
+    }
+    judge = lambda c: OllamaJudge(c, client=FakeJudgeClient())  # noqa: E731
+    run(
+        MatrixConfig(**paths),
+        tmp_path,
+        tmp_path / "runs/m1",
+        FakeResources,
+        FakeGenerator,
+        judge,
+        lambda _: None,
+    )
+
+    class GradeOnly(FakeJudgeClient):
+        statement_calls = grade_calls = 0
+
+        def chat(self, **kwargs):
+            if "Statement 1" in kwargs["messages"][1]["content"]:
+                GradeOnly.statement_calls += 1
+            else:
+                GradeOnly.grade_calls += 1
+            return super().chat(**kwargs)
+
+    FakeGenerator.calls = 0
+    cfg = MatrixConfig(**paths, reuse_verdicts_from="runs/m1")
+    report = run(
+        cfg, tmp_path, tmp_path / "runs/m2", FakeResources, FakeGenerator,
+        lambda c: OllamaJudge(c, client=GradeOnly()), lambda _: None,
+    )  # fmt: skip
+    assert FakeGenerator.calls == 0  # the answers were copied, not regenerated
+    assert GradeOnly.statement_calls == 0 and GradeOnly.grade_calls == 1  # one unique answer, graded again
+    assert report["meta"]["verdicts_reused_from"] == "runs/m1"
+    assert len((tmp_path / "runs/m2/scores.jsonl").read_text().splitlines()) == 2
+    assert "Re-graded from `runs/m1`" in (tmp_path / "runs/m2/report.md").read_text()
+
+
 class RecordingClient:
     def __init__(self):
         self.unloads = 0
