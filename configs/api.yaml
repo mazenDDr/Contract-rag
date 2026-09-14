@@ -1,0 +1,13 @@
+retrieval_config: configs/retrieval.yaml
+documents_path: data/processed/documents.jsonl
+retrieval:  # the retrieval ablation's best setup: fixed 512-token chunks, BM25, inside the chosen contract
+  chunking: fixed
+  sparse: true
+  k_final: 8
+  doc_filter: true
+generator:
+  model: qwen3.5:4b
+max_question_chars: 500
+host: 127.0.0.1
+port: 8000
+log_path: runs/api/requests.jsonl  # one JSON line per request, besides stdout

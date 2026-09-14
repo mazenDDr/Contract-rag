@@ -1,0 +1,11 @@
+# The build context is an allow-list: only what the image needs.
+*
+!Dockerfile
+!requirements-api.txt
+!pyproject.toml
+!src
+!configs/api.yaml
+!configs/retrieval.yaml
+!build/image
+**/__pycache__
+**/*.pyc
