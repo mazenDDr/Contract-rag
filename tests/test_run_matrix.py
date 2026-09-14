@@ -2,7 +2,7 @@ import json
 from types import SimpleNamespace
 
 from contract_rag.eval.judge import OllamaJudge
-from contract_rag.eval.run_matrix import MatrixConfig, choose_configs, parse_config_key, run
+from contract_rag.eval.run_matrix import MatrixConfig, choose_configs, configs_to_run, parse_config_key, run
 from contract_rag.schemas import (
     Chunk,
     Document,
@@ -33,6 +33,8 @@ def test_parse_config_key_inverts_the_ablation_ids():
     assert choose_configs(summary, True, []) == [HYBRID, BM25]
     two = {"selected_on_dev": [HYBRID, WEIGHTED], "configs": {HYBRID: {}, BM25: {}, WEIGHTED: {}}}
     assert choose_configs(two, True, [], select_top=1) == [HYBRID, BM25]  # WEIGHTED and its baseline dropped
+    assert configs_to_run(MatrixConfig(configs=[BM25, BM25]), two) == [BM25]  # an explicit list wins
+    assert configs_to_run(MatrixConfig(select_top=1), two) == [HYBRID, BM25]
 
 
 class FakePipeline:
