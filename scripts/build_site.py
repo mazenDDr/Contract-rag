@@ -8,9 +8,11 @@ Every number and example on the pages comes from the repository's runs:
 - the exhibits are real answers from the final answer-quality run, each citation shown with the
   sentence of its excerpt that best matches the statement citing it;
 - the guide adds every ablation configuration's test scores, the story question's numbered prompt
-  excerpts, and one graded answer (q0031) whose statements the judge checked one by one.
+  excerpts, and one graded answer (q0031) whose statements the judge checked one by one;
+- site/demo-template.html -> site/demo.html (recorded answers) holds every test question's answer from the
+  served setup, with its grade, statement checks, cited excerpts and, for failures, the triage category.
 
-Needs data/processed (parsed documents, blocks, chunks) and runs/matrix-v3.
+Needs data/processed (parsed documents, blocks, chunks), runs/matrix-v3 and runs/failure-analysis-v3.
 Run: PYTHONPATH=src .venv/bin/python scripts/build_site.py
 """
 
@@ -21,6 +23,7 @@ import re
 from pathlib import Path
 
 from contract_rag.analysis.failures import content_words
+from contract_rag.api.service import display_title
 from contract_rag.eval.judge import split_statements
 from contract_rag.retrieval.config import load_chunks
 from contract_rag.retrieval.pipeline import scoped_query
@@ -49,7 +52,9 @@ def best_sentence(chunk_text: str, statement: str) -> str:
     sentences = [s.strip() for s in _SENTENCE.split(re.sub(r"\s+", " ", chunk_text)) if len(s.strip()) > 25]
     words, numbers = content_words(statement), set(_NUMBER.findall(statement))
     return max(
-        sentences, key=lambda s: len(content_words(s) & words) + 3 * len(set(_NUMBER.findall(s)) & numbers)
+        sentences,
+        key=lambda s: len(content_words(s) & words) + 3 * len(set(_NUMBER.findall(s)) & numbers),
+        default="",
     )
 
 
@@ -223,6 +228,66 @@ def tree() -> list[list]:
     ]
 
 
+def demo(questions, generations, scores, chunks) -> list[dict]:
+    """Every test question's recorded answer from the served setup: grade, statement checks, the cited
+    excerpts with the sentence each statement matched, and the triage category when it failed."""
+    docs = {d["doc_id"]: d for d in read_jsonl(ROOT / "data/processed/documents.jsonl")}
+    triage = {
+        r["qid"]: r["category"]
+        for r in read_jsonl(ROOT / "runs/failure-analysis-v3/triage.jsonl")
+        if r["config_id"] == BASE
+    }
+    rows = []
+    for qid, record in sorted(generations.items()):
+        q, score, gen, final = questions[qid], scores[qid], record["generation"], record["final"]
+        detail = json.loads(score["judge_rationale"] or "{}")
+        said = split_statements(gen["answer"])
+        citations = []
+        for n in sorted({n for st in said for n in st.cited if 1 <= n <= len(final)}):
+            chunk = chunks[final[n - 1]]
+            text = re.sub(r"\s+", " ", chunk.context_text or chunk.text).strip()
+            marks = [best_sentence(text, st.text) for st in said if n in st.cited]
+            citations.append(
+                {
+                    "n": n,
+                    "id": short_id(chunk.chunk_id),
+                    "pages": [chunk.page_start, chunk.page_end],
+                    "section": " > ".join(chunk.section_path[-2:]),
+                    "text": text,
+                    "marks": [m for m in dict.fromkeys(marks) if m],
+                }
+            )
+        doc = docs[q["doc_id"]]
+        rows.append(
+            {
+                "qid": qid,
+                "contract": display_title(doc["title"]),
+                "pages": doc["num_pages"],
+                "category": q["category"],
+                "qtype": q["qtype"],
+                "answerable": q["answerable"],
+                "question": q["question"],
+                "reference": q["reference_answer"],
+                "answer": gen["answer"],
+                "abstained": gen["abstained"],
+                "correctness": score["answer_correctness"],
+                "abstention_correct": score["abstention_correct"],
+                "faithfulness": score["faithfulness"],
+                "citation_validity": score["citation_validity"],
+                "grade_reason": (detail.get("grade") or {}).get("reason", ""),
+                "statements": [
+                    {k: st.get(k) for k in ("text", "cited", "supported", "reason")}
+                    for st in detail.get("statements") or []
+                ],
+                "citations": citations,
+                "triage": triage.get(qid),
+                "ms": round(gen["latency_ms"]),
+                "tokens": gen["prompt_tokens"] + gen["completion_tokens"],
+            }
+        )
+    return rows
+
+
 def render(template: str, out: str, data: dict) -> None:
     html = (ROOT / template).read_text(encoding="utf-8")
     for marker, value in data.items():
@@ -261,6 +326,11 @@ def main() -> None:
             "/*__PROMPT__*/null": prompt(generations, fixed),
             "/*__TREE__*/null": tree(),
         },
+    )
+    render(
+        "site/demo-template.html",
+        "site/demo.html",
+        {"/*__DEMO__*/null": demo(questions, generations, scores, fixed)},
     )
 
 

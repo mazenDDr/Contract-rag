@@ -1,35 +1,51 @@
 # Deployment
 
-The live demo runs on a free Hugging Face Docker Space: <https://huggingface.co/spaces/mazenDDr/contract-rag>.
-
-| Path | What it serves |
+| What | Where |
 |---|---|
-| `/` | The Streamlit page: pick a contract, ask, open each citation |
-| `/api/docs` | The FastAPI service's interactive docs |
-| `/api/health` | Open health check |
-| `/api/contracts`, `/api/ask` | Need the `X-API-Key` header (the Space secret `APP_API_KEY`) |
+| Recorded answers: all 70 test questions, graded, with citations and failure causes | <https://mazenddr.github.io/Contract-rag/demo/> |
+| The field guide and the tour | <https://mazenddr.github.io/Contract-rag/> |
+| The live system: model, API and page | the all-in-one Docker image, on any machine (below) |
 
-## What runs in the container
+## Why the online demo is recorded
 
-One image (`deploy/space/Dockerfile`) holds everything:
+Hosting the live system needs a machine that can hold a 4B model, about 16 GB of memory. Free hosts are too small. Hugging Face Docker Spaces, which the all-in-one image was built for, now need a paid plan: a push returns 402, "hosting Gradio and Docker Spaces on free cpu-basic requires a PRO subscription". So the public demo replays the evaluation run instead. It's built by `scripts/build_site.py` from `runs/matrix-v3` and `runs/failure-analysis-v3`, and it shows the served setup's real answers, grades, statement checks, cited excerpts and failure categories. It costs nothing and answers instantly, but it can't take new questions.
+
+## The all-in-one image
+
+`deploy/space/Dockerfile` puts everything in one container:
 
 - Ollama with `qwen3.5:4b` baked in, so a cold start doesn't download it. Only Ollama's CPU libraries are copied, not its CUDA libraries.
 - The API (`api/main.py --root-path /api`).
 - The Streamlit page.
 - nginx on port 7860, routing `/api/` to the API and everything else to the page.
 
-`deploy/space/start.sh` starts all four and exits if any of them stops, so the Space restarts the whole container rather than running half of it. The data the served setup needs is baked in: parsed documents, fixed chunks and their BM25 index, 13.7 MB.
-
-To update the Space:
+`deploy/space/start.sh` starts all four and exits if any of them stops, so a supervisor restarts the whole container rather than running half of it. The data the served setup needs is baked in: parsed documents, fixed chunks and their BM25 index, 13.7 MB.
 
 ```bash
-PYTHONPATH=src .venv/bin/python scripts/push_space.py                          # assemble build/space/
-APP_API_KEY=... PYTHONPATH=src .venv/bin/python scripts/push_space.py --push mazenDDr/contract-rag
+PYTHONPATH=src .venv/bin/python scripts/push_space.py     # assemble build/space/ (needs the built data)
+docker build -t contract-rag-space build/space
+docker run -p 7860:7860 -e APP_API_KEY=choose-a-key contract-rag-space
 ```
 
-## Why the Space runs the 4B model, although it is slow on CPU
+| Path | What it serves |
+|---|---|
+| `/` | The Streamlit page: pick a contract, ask, open each citation |
+| `/api/docs` | The FastAPI service's interactive docs |
+| `/api/health` | Open health check |
+| `/api/contracts`, `/api/ask` | Need the `X-API-Key` header |
 
-The free tier has 2 vCPUs and no GPU. Almost all of an answer's time goes into reading the prompt: 8 excerpts of up to 512 tokens, about 4,400 tokens in all.
+The same image fits a Hugging Face Space on a paid plan. `APP_API_KEY=... PYTHONPATH=src .venv/bin/python scripts/push_space.py --push OWNER/NAME` creates the Space, sets its key secret and uploads the build.
+
+**Local check** (Docker Desktop on the laptop, CPU only in the container):
+- the Kubient × Associated Press termination question was answered correctly, citing [5] on page 1;
+- search took 3.4 ms and the answer 47 s;
+- `/api/contracts` without a key returned 401;
+- `/`, `/api/docs` and `/api/health` returned 200;
+- every request wrote one JSON log line.
+
+## Why the image runs the 4B model, although it is slow on CPU
+
+Without a GPU, almost all of an answer's time goes into reading the prompt: 8 excerpts of up to 512 tokens, about 4,400 tokens in all.
 
 **Speed.** One real question (q0078), CPU only, on an Apple M4 Pro:
 
@@ -46,15 +62,7 @@ The free tier has 2 vCPUs and no GPU. Almost all of an answer's time goes into r
 | `qwen3.5:2b` | 0.53 [0.41, 0.63] | 0.08 | 0.14 | 0.94 | `runs/matrix-deploy-2b` |
 | `qwen3.5:0.8b` | 0.32 [0.22, 0.42] | 0.03 | 0.06 | 0.80 | `runs/matrix-deploy-0.8b` |
 
-The 2B answered with no citation at all in 52 of its 70 answers. Citing the clause is the point of the project, so the Space serves the 4B that every reported result was measured with. It says up front that an answer takes minutes.
-
-**Local check of the Space image**, with Docker Desktop on the laptop and CPU only in the container:
-- the Kubient × Associated Press termination question was answered correctly, citing [5] on page 1;
-- search took 3.4 ms and the answer 47 s;
-- `/api/contracts` without a key returned 401;
-- every request wrote one JSON log line.
-
-The Space's 2 shared vCPUs are slower than the laptop's cores, so expect about 2–3 minutes per answer there.
+The 2B answered with no citation at all in 52 of its 70 answers. Citing the clause is the point of the project, so the image serves the 4B that every reported result was measured with.
 
 To reproduce the small-model runs:
 

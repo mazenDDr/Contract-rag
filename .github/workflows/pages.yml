@@ -1,4 +1,5 @@
-# Publishes the project pages: the field guide at the root and the one-page tour at /tour/.
+# Publishes the project pages: the field guide at the root, the one-page tour at /tour/ and the recorded
+# answers at /demo/.
 # Both are static files built locally with scripts/build_site.py and committed under site/.
 name: Pages
 
@@ -27,9 +28,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Assemble the site
         run: |
-          mkdir -p _site/tour
+          mkdir -p _site/tour _site/demo
           cp site/guide.html _site/index.html
           cp site/index.html _site/tour/index.html
+          cp site/demo.html _site/demo/index.html
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

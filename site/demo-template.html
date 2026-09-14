@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>contract-rag Recorded Answers</title>
+<meta name="description" content="Pick any of 70 test questions about real contracts and see exactly what contract-rag answered, with its citations, its grade, and why it failed when it did.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* tokens shared with the tour and the guide: red = the reviewer's pen, yellow = evidence, teal = the machine */
+:root{
+  --desk:#E9E8E3; --sheet:#FFFFFF; --sheet-2:#F7F6F2; --line:#D8D6CE; --line-soft:#E7E5DE;
+  --ink:#1A2233; --ink-2:#465063; --ink-3:#737B8A;
+  --pen:#C0272D; --pen-soft:#F7DEDF;
+  --hl:#FFE36A; --hl-ink:#1A2233;
+  --mach:#0E7C7B; --mach-soft:#D9EFEE; --mach-ink:#FFFFFF;
+  --ok:#2E7D4F; --ok-soft:#DFF0E4; --warn:#A86A12; --warn-soft:#F6E9D2; --bad:#B3303A; --bad-soft:#F7DEDF;
+  --shadow:0 1px 1px rgba(26,34,51,.05),0 12px 30px rgba(26,34,51,.10);
+  --serif:"Libre Caslon Text","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --display:"Libre Caslon Display","Libre Caslon Text","Iowan Old Style",Georgia,serif;
+  --sans:"IBM Plex Sans","Helvetica Neue",Arial,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --desk:#0E1014; --sheet:#171A21; --sheet-2:#1C2029; --line:#2C313C; --line-soft:#232832;
+    --ink:#E8E6E0; --ink-2:#B9BCC4; --ink-3:#8C919C;
+    --pen:#FF7A72; --pen-soft:#3A1F22;
+    --hl:#6B5A12; --hl-ink:#FFF4C2;
+    --mach:#4FD1C5; --mach-soft:#17312F; --mach-ink:#0E1014;
+    --ok:#74CF97; --ok-soft:#1B3325; --warn:#E6B45A; --warn-soft:#332A17; --bad:#FF8A94; --bad-soft:#3A1F22;
+    --shadow:0 1px 1px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --desk:#0E1014; --sheet:#171A21; --sheet-2:#1C2029; --line:#2C313C; --line-soft:#232832;
+  --ink:#E8E6E0; --ink-2:#B9BCC4; --ink-3:#8C919C;
+  --pen:#FF7A72; --pen-soft:#3A1F22;
+  --hl:#6B5A12; --hl-ink:#FFF4C2;
+  --mach:#4FD1C5; --mach-soft:#17312F; --mach-ink:#0E1014;
+  --ok:#74CF97; --ok-soft:#1B3325; --warn:#E6B45A; --warn-soft:#332A17; --bad:#FF8A94; --bad-soft:#3A1F22;
+  --shadow:0 1px 1px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--desk);color:var(--ink);font:400 16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--mach);text-underline-offset:3px}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:24px}
+@media (max-width:520px){.wrap{padding-inline:16px}}
+h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.01em;text-wrap:balance;margin:0}
+.label{font:500 11px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+:focus-visible{outline:2px solid var(--mach);outline-offset:2px;border-radius:4px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+.nav{position:sticky;top:0;z-index:30;background:var(--desk);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:18px;height:58px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font:400 21px/1 var(--display)}
+.brand b{font:700 15px/1 var(--serif);color:var(--sheet);background:var(--ink);width:26px;height:26px;border-radius:50%;display:grid;place-items:center}
+.brand small{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.nav ul{display:flex;gap:2px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav a.nl{font:500 14.5px/1 var(--sans);color:var(--ink-2);text-decoration:none;padding:9px 10px;border-radius:8px}
+.nav a.nl:hover{background:var(--sheet);color:var(--ink)}
+.icon-btn{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:9px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer;flex:none}
+@media (max-width:640px){.brand small{display:none}.nav li.opt{display:none}}
+
+.hero{padding-block:40px 22px}
+.hero h1{font-size:clamp(34px,4.6vw,56px);line-height:1.02;max-width:16em}
+.hero p{font:400 18px/1.55 var(--serif);color:var(--ink-2);margin:14px 0 0;max-width:44em}
+.honest{display:flex;gap:10px;align-items:flex-start;margin-top:16px;max-width:52em;font:400 14px/1.5 var(--sans);color:var(--ink-2);border-left:3px solid var(--pen);background:var(--pen-soft);border-radius:0 6px 6px 0;padding:10px 14px}
+.honest b{color:var(--ink)}
+
+.demo{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:start;padding-bottom:48px}
+@media (max-width:960px){.demo{grid-template-columns:minmax(0,1fr)}}
+.picker{position:sticky;top:74px;background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 90px)}
+@media (max-width:960px){.picker{position:static;max-height:none}}
+.picker input{width:100%;font:400 14.5px/1.3 var(--sans);color:var(--ink);background:var(--sheet-2);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font:500 12px/1 var(--sans);border:1px solid var(--line);background:var(--sheet-2);color:var(--ink-2);border-radius:999px;padding:7px 10px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.chip i{font-style:normal;font-family:var(--mono);opacity:.75;margin-left:3px}
+.list{overflow:auto;min-height:0;display:flex;flex-direction:column;gap:2px;margin-inline:-4px;padding-inline:4px}
+@media (max-width:960px){.list{max-height:320px}}
+.grp{font:500 11px/1.35 var(--mono);color:var(--ink-3);letter-spacing:.04em;padding:10px 6px 4px;border-top:1px solid var(--line-soft)}
+.grp:first-child{border-top:0;padding-top:2px}
+.item{display:grid;grid-template-columns:10px minmax(0,1fr);gap:9px;align-items:start;text-align:left;width:100%;border:0;background:none;color:var(--ink-2);font:400 13.5px/1.4 var(--sans);padding:7px 6px;border-radius:6px;cursor:pointer}
+.item:hover{background:var(--sheet-2);color:var(--ink)}
+.item[aria-current="true"]{background:var(--mach-soft);color:var(--ink)}
+.dot{width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--line)}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.empty{font:400 13.5px/1.5 var(--sans);color:var(--ink-3);padding:8px 6px}
+
+.view{background:var(--sheet);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:26px clamp(18px,3vw,34px) 30px;min-width:0}
+.vq{font-size:clamp(24px,2.6vw,32px);line-height:1.15;margin:10px 0 18px}
+.trace{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:6px}
+.trace li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;font:400 13.5px/1.45 var(--sans);color:var(--ink-2);transition:opacity .35s,transform .35s}
+.trace li::before{content:"✓";color:var(--mach);font-weight:700}
+.trace li.off{opacity:0;transform:translateX(-6px)}
+.ans{background:var(--mach-soft);border-radius:8px;padding:14px 18px}
+.ans p{margin:6px 0 0;font:500 16.5px/1.6 var(--sans);color:var(--ink);min-height:1.6em}
+.ans .caret{display:inline-block;width:8px;height:1.05em;background:var(--mach);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.cite{font:600 12.5px/1 var(--mono);color:var(--mach-ink);background:var(--mach);border:0;border-radius:5px;padding:4px 6px;margin:0 1px;cursor:pointer;vertical-align:1px}
+.cite:hover{filter:brightness(1.12)}
+.verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:16px 0 4px;transition:opacity .35s}
+.verdict.off{opacity:0}
+.stamp{font:400 18px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;border:2.5px solid currentColor;border-radius:5px;padding:7px 11px 6px;transform:rotate(-3deg);display:inline-block}
+.stamp.ok{color:var(--ok)}.stamp.warn{color:var(--warn)}.stamp.bad{color:var(--bad)}
+.verdict.pop .stamp{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:rotate(-3deg) scale(1.6);opacity:0}to{transform:rotate(-3deg) scale(1);opacity:1}}
+.num{font:500 12.5px/1.2 var(--mono);background:var(--sheet-2);border:1px solid var(--line);border-radius:5px;padding:7px 9px;color:var(--ink-2)}
+.num b{color:var(--ink);font-weight:500}
+.reason{font:italic 400 14.5px/1.5 var(--serif);color:var(--ink-2);margin:8px 0 0}
+.wrong{margin-top:14px;border-left:3px solid var(--pen);background:var(--pen-soft);border-radius:0 6px 6px 0;padding:10px 14px;font:400 14.5px/1.5 var(--sans);color:var(--ink)}
+.wrong b{font-weight:600}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px;margin-top:22px}
+@media (max-width:760px){.cols{grid-template-columns:minmax(0,1fr)}}
+.ref p{margin:6px 0 0;font:400 14.5px/1.55 var(--serif);color:var(--ink-2)}
+.checks{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:8px}
+.checks li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;font:400 14px/1.45 var(--sans);color:var(--ink)}
+.checks .m{font-weight:700}.checks .m.ok{color:var(--ok)}.checks .m.bad{color:var(--bad)}
+.checks small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:2px}
+.cards{display:grid;gap:12px;margin-top:8px}
+.excerpt{border:1px solid var(--line);border-radius:6px;padding:12px 16px 14px;background:var(--sheet-2);transition:box-shadow .3s,border-color .3s}
+.excerpt.flash{border-color:var(--mach);box-shadow:0 0 0 3px color-mix(in srgb,var(--mach) 25%,transparent)}
+.excerpt .hd{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;font:500 11.5px/1.4 var(--mono);color:var(--ink-3);margin-bottom:8px}
+.excerpt .hd b{color:var(--mach-ink);background:var(--mach);border-radius:4px;padding:2px 6px;font-weight:600}
+.excerpt p{margin:0;font:400 14.5px/1.7 var(--serif);color:var(--ink-2);text-align:justify;hyphens:auto}
+.excerpt mark{background:var(--hl);color:var(--hl-ink);border-radius:2px;padding:1px 0;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.more{margin-top:8px;font:500 12.5px/1 var(--sans);border:1px solid var(--line);background:var(--sheet);color:var(--ink-2);border-radius:999px;padding:7px 11px;cursor:pointer}
+.section-l{margin-top:24px;display:block}
+.fade{transition:opacity .4s}
+.fade.off{opacity:0}
+footer{border-top:1px solid var(--line);padding-block:24px 40px;font:400 13.5px/1.5 var(--sans);color:var(--ink-3)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="../"><b>§</b>contract-rag <small>recorded answers</small></a>
+    <ul>
+      <li class="opt"><a class="nl" href="../">Field guide</a></li>
+      <li class="opt"><a class="nl" href="../tour/">The tour</a></li>
+      <li><a class="nl" href="https://github.com/mazenDDr/Contract-rag">GitHub</a></li>
+    </ul>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch between light and dark mode" title="Light / dark">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <span class="label">Try it · 70 test questions about 48 real contracts</span>
+  <h1 style="margin-top:12px">Pick a question. See exactly what it answered.</h1>
+  <p>Every answer here is the system's real output from its evaluation run: the served setup (fixed chunks, BM25 inside the contract, qwen3.5:4b), graded statement by statement by gemma4:12b. The failures are included, with where each one went wrong.</p>
+  <div class="honest"><span><b>Recorded, not generated as you watch.</b> Hosting a model online isn't free, so this page replays the saved results. To ask your own questions, the whole system runs on your machine with one Docker command (<a href="https://github.com/mazenDDr/Contract-rag#try-it">how</a>).</span></div>
+</header>
+
+<main class="wrap demo">
+  <aside class="picker" aria-label="Questions">
+    <input id="filter" type="search" placeholder="Filter by contract, clause or words" aria-label="Filter questions">
+    <div class="chips" id="chips" role="group" aria-label="Show"></div>
+    <div class="list" id="list"></div>
+  </aside>
+  <article class="view" id="view" aria-live="polite"></article>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>contract-rag · local, open-weight models · data: CUAD v1 (CC BY 4.0)</span>
+    <span><a href="../">Field guide</a> · <a href="../tour/">The tour</a> · <a href="https://github.com/mazenDDr/Contract-rag">Code</a></span>
+  </div>
+</footer>
+
+<script>
+const DEMO = /*__DEMO__*/null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const BY = Object.fromEntries(DEMO.map(r => [r.qid, r]));
+
+(() => {
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("cr-theme"); if (t) root.dataset.theme = t; } catch (e) {}
+  $("#themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("cr-theme", root.dataset.theme); } catch (e) {}
+  });
+})();
+
+function outcome(r) {
+  if (!r.answerable) return r.abstention_correct ? {key: "declined", label: "Declined correctly", cls: "ok"} : {key: "answered", label: "Answered anyway", cls: "bad"};
+  if ((r.correctness ?? 0) >= 1) return {key: "correct", label: "Correct", cls: "ok"};
+  if ((r.correctness ?? 0) >= 0.5) return {key: "partial", label: "Partial", cls: "warn"};
+  return {key: "incorrect", label: "Incorrect", cls: "bad"};
+}
+const WHY = {
+  partial_evidence: "Only part of the evidence reached the model: search found some of the clauses this answer needs, not all of them.",
+  ranking_miss: "The clause was in the contract's chunks, but search ranked it below the 8 excerpts the model reads.",
+  retrieval_miss: "Search never ranked the chunk that holds the clause.",
+  reranker_demotion: "A reranker pushed the right chunk out of the top 8.",
+  lost_in_chunking: "The clause wasn't captured whole by any chunk.",
+  refused_with_evidence: "The evidence was in the excerpts, but the model said the contract doesn't cover it.",
+  unsupported_claims: "The evidence reached the model, but the answer claims things its cited excerpts don't say.",
+  misread_evidence: "The evidence reached the model and was cited, but the answer got it wrong.",
+  answered_unanswerable: "The contract has no such clause, but the model answered anyway.",
+};
+const FILTERS = [["all", "All"], ["correct", "Correct"], ["partial", "Partial"], ["incorrect", "Incorrect"], ["unanswerable", "No such clause"]];
+let filter = "all", query = "", current = null, run = 0;
+
+function matches(r) {
+  const o = outcome(r).key;
+  const okFilter = filter === "all" || (filter === "unanswerable" ? !r.answerable : r.answerable && o === filter);
+  const hay = `${r.contract} ${r.category} ${r.question} ${r.qid}`.toLowerCase();
+  return okFilter && (!query || query.split(/\s+/).every(w => hay.includes(w)));
+}
+function renderChips() {
+  $("#chips").innerHTML = FILTERS.map(([k, l]) => {
+    const n = DEMO.filter(r => k === "all" || (k === "unanswerable" ? !r.answerable : r.answerable && outcome(r).key === k)).length;
+    return `<button class="chip" type="button" data-f="${k}" aria-pressed="${k === filter}">${l}<i>${n}</i></button>`;
+  }).join("");
+}
+function renderList() {
+  const rows = DEMO.filter(matches).sort((a, b) => a.contract.localeCompare(b.contract) || a.qid.localeCompare(b.qid));
+  let html = "", last = null;
+  for (const r of rows) {
+    if (r.contract !== last) { html += `<div class="grp">${esc(r.contract)}</div>`; last = r.contract; }
+    html += `<button class="item" type="button" data-q="${r.qid}" aria-current="${r.qid === current}"><span class="dot ${outcome(r).cls}" title="${outcome(r).label}"></span><span>${esc(r.question)}</span></button>`;
+  }
+  $("#list").innerHTML = html || `<div class="empty">No question matches. Try another word, or "All".</div>`;
+}
+
+function withCites(text) {
+  return esc(text).replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (_, g) => g.split(/\s*,\s*/).map(n => `<button class="cite" type="button" data-n="${n}" aria-label="Show excerpt ${n}">[${n}]</button>`).join(""));
+}
+function markText(text, marks, whole) {
+  const spans = [];
+  for (const m of marks) { const i = text.indexOf(m); if (i >= 0) spans.push([i, i + m.length]); }
+  spans.sort((a, b) => a[0] - b[0]);
+  let lo = 0, hi = text.length;
+  if (!whole && text.length > 900 && spans.length) {
+    lo = Math.max(0, spans[0][0] - 300); hi = Math.min(text.length, spans[spans.length - 1][1] + 300);
+    if (lo > 0) lo = text.indexOf(" ", lo) + 1; if (hi < text.length) hi = text.lastIndexOf(" ", hi);
+  } else if (!whole && text.length > 900) hi = 700;
+  let out = "", at = lo;
+  for (const [a, b] of spans) { if (b <= at || a >= hi) continue; out += esc(text.slice(at, Math.max(at, a))) + `<mark>${esc(text.slice(Math.max(at, a), Math.min(b, hi)))}</mark>`; at = Math.min(b, hi); }
+  out += esc(text.slice(at, hi));
+  return {html: (lo > 0 ? "… " : "") + out + (hi < text.length ? " …" : ""), cut: lo > 0 || hi < text.length};
+}
+function excerptCard(c) {
+  const pages = c.pages[0] === c.pages[1] ? `page ${c.pages[0]}` : `pages ${c.pages[0]}–${c.pages[1]}`;
+  const m = markText(c.text, c.marks, false);
+  return `<div class="excerpt" id="ex-${c.n}"><div class="hd"><b>[${c.n}]</b><span>${pages}</span>${c.section ? `<span>${esc(c.section)}</span>` : ""}<span>${esc(c.id)}</span></div>
+    <p>${m.html}</p>${m.cut ? `<button class="more" type="button" data-whole="${c.n}">Show the whole excerpt</button>` : ""}</div>`;
+}
+
+function renderView(r, animate) {
+  const o = outcome(r), n = r.statements.length, id = ++run;
+  const secs = (r.ms / 1000).toFixed(1);
+  const trace = [
+    `Searched the ${r.pages}-page contract: BM25 over its fixed 512-token chunks, with the 8 best kept as numbered excerpts.`,
+    `qwen3.5:4b answered from those excerpts in ${secs} s (${r.tokens.toLocaleString("en-US")} tokens) on a laptop GPU.`,
+    n ? `gemma4:12b checked ${n === 1 ? "its one statement" : `each of its ${n} statements`} against only the excerpts that statement cites${r.answerable ? ", then graded the answer against the lawyers' reference." : "."}`
+      : `The answer made no checkable statement${r.abstained ? ": it declined." : "."}`,
+  ];
+  const checks = r.statements.map(s => `<li><span class="m ${s.supported ? "ok" : "bad"}">${s.supported ? "✓" : "✗"}</span><span>${esc(s.text)} ${s.cited?.length ? s.cited.map(k => `<span class="cite" style="cursor:default">[${k}]</span>`).join("") : "<i>(no citation)</i>"}<small>${esc(s.reason || "")}</small></span></li>`).join("");
+  const nums = [
+    r.faithfulness != null ? `<span class="num">faithfulness <b>${r.faithfulness.toFixed(2)}</b></span>` : "",
+    r.citation_validity != null ? `<span class="num">citation validity <b>${r.citation_validity.toFixed(2)}</b></span>` : "",
+    r.answerable && r.correctness != null ? `<span class="num">correctness <b>${r.correctness.toFixed(1)}</b></span>` : "",
+  ].join("");
+  const why = r.triage && WHY[r.triage] ? `<div class="wrong fade"><b>Where it went wrong:</b> ${WHY[r.triage]} <a href="../#a-fail">How failures are traced</a></div>` : "";
+  $("#view").innerHTML = `
+    <span class="label">${esc(r.contract)} · ${esc(r.category)} · ${r.qid}</span>
+    <h2 class="vq">${esc(r.question)}</h2>
+    <ol class="trace">${trace.map(t => `<li>${esc(t)}</li>`).join("")}</ol>
+    <div class="ans"><span class="label">The answer</span><p id="ansText">${withCites(r.answer)}</p></div>
+    <div class="verdict" id="verdict"><span class="stamp ${o.cls}">${o.label}</span>${nums}</div>
+    ${r.grade_reason ? `<p class="reason fade">Grader: “${esc(r.grade_reason)}”</p>` : ""}
+    ${why}
+    <div class="cols fade">
+      <div class="ref"><span class="label">What the lawyers marked</span><p>${r.answerable ? esc(r.reference) : "Nothing: this contract has no such clause, so the right answer is to say so."}</p></div>
+      <div><span class="label">Each statement, checked</span>${checks ? `<ul class="checks">${checks}</ul>` : `<p class="ref" style="margin:6px 0 0;color:var(--ink-3)">No statements to check.</p>`}</div>
+    </div>
+    <span class="label section-l fade">Cited excerpts, with the sentence each statement matched</span>
+    <div class="cards fade">${r.citations.length ? r.citations.map(excerptCard).join("") : `<p class="ref" style="margin:0;color:var(--ink-3)">The answer cites no excerpt.</p>`}</div>`;
+  if (!animate || REDUCE) return;
+  const lis = [...document.querySelectorAll(".trace li")], verdict = $("#verdict"), fades = [...document.querySelectorAll("#view .fade")], ans = $("#ansText");
+  lis.forEach(li => li.classList.add("off")); verdict.classList.add("off"); fades.forEach(f => f.classList.add("off"));
+  const full = ans.innerHTML, plain = r.answer;
+  ans.innerHTML = '<span class="caret"></span>';
+  const at = (ms, fn) => setTimeout(() => { if (id === run) fn(); }, ms);
+  lis.forEach((li, i) => at(150 + i * 320, () => li.classList.remove("off")));
+  const start = 150 + lis.length * 320, dur = Math.min(1400, 12 * plain.length), steps = 28;
+  for (let k = 1; k <= steps; k++) at(start + dur * k / steps, () => { ans.innerHTML = esc(plain.slice(0, Math.round(plain.length * k / steps))) + '<span class="caret"></span>'; });
+  at(start + dur + 60, () => { ans.innerHTML = full; verdict.classList.remove("off"); verdict.classList.add("pop"); });
+  at(start + dur + 420, () => fades.forEach(f => f.classList.remove("off")));
+}
+
+function select(qid, animate) {
+  const r = BY[qid] || BY.q0078 || DEMO[0];
+  current = r.qid;
+  document.querySelectorAll(".item").forEach(b => b.setAttribute("aria-current", String(b.dataset.q === current)));
+  renderView(r, animate);
+  if (location.hash.slice(1) !== current) history.replaceState(null, "", "#" + current);
+}
+
+$("#chips").addEventListener("click", e => { const b = e.target.closest("[data-f]"); if (!b) return; filter = b.dataset.f; renderChips(); renderList(); });
+$("#filter").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); renderList(); });
+$("#list").addEventListener("click", e => {
+  const b = e.target.closest("[data-q]"); if (!b) return;
+  select(b.dataset.q, true);
+  if (matchMedia("(max-width: 960px)").matches) $("#view").scrollIntoView({behavior: REDUCE ? "auto" : "smooth", block: "start"});
+});
+$("#view").addEventListener("click", e => {
+  const c = e.target.closest("button.cite[data-n]");
+  if (c) {
+    const card = document.getElementById("ex-" + c.dataset.n); if (!card) return;
+    card.scrollIntoView({behavior: REDUCE ? "auto" : "smooth", block: "nearest"});
+    card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+    setTimeout(() => card.classList.remove("flash"), 1400);
+  }
+  const w = e.target.closest("[data-whole]");
+  if (w) {
+    const r = BY[current], cit = r.citations.find(x => String(x.n) === w.dataset.whole);
+    w.previousElementSibling.innerHTML = markText(cit.text, cit.marks, true).html; w.remove();
+  }
+});
+addEventListener("hashchange", () => { const q = location.hash.slice(1); if (BY[q] && q !== current) select(q, true); });
+
+renderChips();
+renderList();
+select(location.hash.slice(1) || "q0078", false);
+</script>
+</body>
+</html>

@@ -380,6 +380,7 @@ svg.tracing .edge.lit{opacity:1;stroke:var(--pen);stroke-width:2.2}
       <li class="opt"><a class="nl" href="#part-answer">Answer</a></li>
       <li class="opt"><a class="nl" href="#part-measure">Measure</a></li>
       <li class="opt"><a class="nl" href="#part-serve">Serve</a></li>
+      <li><a class="nl" href="demo/">Try it</a></li>
       <li><a class="nl" href="tour/">The tour</a></li>
       <li><a class="nl" href="https://github.com/mazenDDr/Contract-rag">GitHub</a></li>
     </ul>
@@ -911,7 +912,7 @@ svg.tracing .edge.lit{opacity:1;stroke:var(--pen);stroke-width:2.2}
   <header class="art-head">
     <span class="art-no">Article XII</span>
     <h2>The service: an API, a page, and one container</h2>
-    <p class="sum">The winning setup from the experiments is wrapped in a small web service with a key, logs and timings, packed into a Docker image and run on a free Hugging Face Space.</p>
+    <p class="sum">The winning setup from the experiments is wrapped in a small web service with a key, logs and timings, and packed into Docker images, one of which carries the model too, so the whole system runs anywhere with one command.</p>
   </header>
   <div class="art-body">
     <div class="prose">
@@ -925,9 +926,9 @@ svg.tracing .edge.lit{opacity:1;stroke:var(--pen);stroke-width:2.2}
       </ul>
       <p>A small <b>Streamlit</b> page lets anyone pick a contract, ask, and open each citation.</p>
       <h3>The container</h3>
-      <p>The image installs only what the API imports: no PyTorch, because the served setup never embeds. It bakes in the 13 MB of data it needs, runs as an unprivileged user, and has a health check. On the Space, the same image also carries <b>Ollama with qwen3.5:4b</b>, with <b>nginx</b> in front: <code>/</code> is the page and <code>/api/</code> is the API.</p>
-      <h3>Choosing the model for a free CPU</h3>
-      <p>The free Space has 2 CPU cores and no GPU. On 2 cores the 4B model takes about 2½ minutes per answer, almost all of it reading the ~4,500-token prompt. The smaller Qwen sizes are faster, so they were measured on the same 70 test questions with the same grader. They answer faster but mostly stop citing, and citations are the point of the project. So the Space runs the 4B that every result on this page was measured with, and asks for patience.</p>
+      <p>The image installs only what the API imports: no PyTorch, because the served setup never embeds. It bakes in the 13 MB of data it needs, runs as an unprivileged user, and has a health check. A second, <b>all-in-one image</b> also carries <b>Ollama with qwen3.5:4b</b>, with <b>nginx</b> in front: <code>/</code> is the page and <code>/api/</code> is the API. It was built and tested locally, and it fits a Hugging Face Space, but Docker Spaces now need a paid plan. So the online demo is a page of <a href="demo/">recorded answers</a>: the real output of the evaluation run for all 70 test questions, graded, cited, and with the failures explained.</p>
+      <h3>Choosing the model for a CPU host</h3>
+      <p>A free CPU host has about 2 cores and no GPU. On 2 cores the 4B model takes about 2½ minutes per answer, almost all of it reading the ~4,500-token prompt. The smaller Qwen sizes are faster, so they were measured on the same 70 test questions with the same grader. They answer faster but mostly stop citing, and citations are the point of the project. So the image runs the 4B that every result on this page was measured with, and asks for patience.</p>
     </div>
     <figure class="fig" data-anim="serve">
       <div class="fig-top"><span class="label">One request, end to end</span><button class="replay" type="button">Replay</button></div>
@@ -947,10 +948,10 @@ svg.tracing .edge.lit{opacity:1;stroke:var(--pen);stroke-width:2.2}
       <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/api/main.py">api/main.py</a></td><td>Starts uvicorn; refuses to run without <code>APP_API_KEY</code>; <code>--root-path</code> for a proxy prefix.</td></tr>
       <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/ui/streamlit_app.py">ui/streamlit_app.py</a></td><td>The page: contract picker, question box, expandable citations, timings.</td></tr>
       <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/Dockerfile">Dockerfile</a></td><td>The API image (610 MB); data staged by <code>scripts/stage_image.py</code>.</td></tr>
-      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/tree/main/deploy/space">deploy/space/</a></td><td>The Space image (Ollama + model + API + page + nginx), assembled and uploaded by <code>scripts/push_space.py</code>.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/tree/main/deploy/space">deploy/space/</a></td><td>The all-in-one image (Ollama + model + API + page + nginx), assembled by <code>scripts/push_space.py</code>, which can also upload it to a Hugging Face Space.</td></tr>
     </table></div>
     <div class="why"><span class="hand">why this, not that</span>
-      <p><b>A Hugging Face Space:</b> the free tier has 16 GB of memory, enough for a 4B model on CPU. The other free hosts are too small to hold a model at all.</p>
+      <p><b>Recorded answers online, the live model on your machine:</b> a 4B model needs about 16 GB of memory to host, the free hosts are too small, and Hugging Face now charges for Docker Spaces. The recorded page is free and instant, and shows the real outputs, failures included.</p>
       <p><b>The slow 4B, not a fast 2B:</b> measured on the same test, the 2B's correctness fell from 0.75 to 0.53 and its citation validity from 0.87 to 0.14. A fast answer without its source isn't what this project promises.</p>
       <p><b>No paid API anywhere:</b> every model in the project is open-weight and runs locally, which was a rule from the first day.</p>
     </div>
@@ -1035,7 +1036,7 @@ make check</code></pre></div>
 <footer class="foot">
   <div class="wrap">
     <span>contract-rag · built with local, open-weight models; no paid APIs · data: CUAD v1 (CC BY 4.0)</span>
-    <span><a href="tour/">The one-page tour</a> · <a href="https://github.com/mazenDDr/Contract-rag">Code</a> · <a href="https://huggingface.co/spaces/mazenDDr/contract-rag">Live demo</a></span>
+    <span><a href="tour/">The one-page tour</a> · <a href="https://github.com/mazenDDr/Contract-rag">Code</a> · <a href="demo/">Recorded answers</a></span>
   </div>
 </footer>
 
@@ -1146,9 +1147,9 @@ const NODES = {
   d3: {c: 4, y: 572, t: "Docker image", f: "Dockerfile", art: "a-serve",
     what: "Slim image with only the API's dependencies and 13 MB of baked-in data; unprivileged user, health check.",
     in: "code + staged data", out: "contract-rag-api (610 MB)", fns: ["stage_image.py"], files: ["Dockerfile", "scripts/stage_image.py"]},
-  d4: {c: 5, y: 572, t: "HF Space", f: "deploy/space/", art: "a-serve",
-    what: "The live demo: Ollama with qwen3.5:4b, the API and the page in one container behind nginx, on the free CPU tier.",
-    in: "build/space/", out: "huggingface.co/spaces/mazenDDr/contract-rag", fns: ["push_space.py", "start.sh", "nginx.conf"], files: ["deploy/space/Dockerfile", "deploy/space/start.sh", "scripts/push_space.py"]},
+  d4: {c: 5, y: 572, t: "All-in-one", f: "deploy/space/", art: "a-serve",
+    what: "Ollama with qwen3.5:4b, the API and the page in one container behind nginx. Runs anywhere with Docker; fits a Hugging Face Space on a paid plan.",
+    in: "build/space/", out: "the contract-rag-space image", fns: ["push_space.py", "start.sh", "nginx.conf"], files: ["deploy/space/Dockerfile", "deploy/space/start.sh", "scripts/push_space.py"]},
   d5: {c: 6, y: 572, t: "Web page", f: "ui/streamlit_app.py", art: "a-serve",
     what: "Pick a contract, ask, open each citation. Calls the API with the key held on the server.",
     in: "a person", out: "a question to the API", fns: ["load_contracts", "show_answer"], files: ["ui/streamlit_app.py"]},
@@ -1203,8 +1204,8 @@ const TOURS = {
     [["c7"], ["c6-c7"], "Every failure is traced to the first stage that broke: 62% happen before the model sees the evidence."],
   ],
   serve: [
-    [["d5"], [], "Someone opens the Space, picks a contract and types a question."],
-    [["d4"], ["d5-d4"], "Inside the Space, nginx passes it on; everything runs in one container on 2 CPU cores."],
+    [["d5"], [], "Someone opens the page, picks a contract and types a question."],
+    [["d4"], ["d5-d4"], "In the all-in-one container, nginx passes it on; model, API and page all run in one box."],
     [["d2"], [], "The API checks the key, stamps a request id, and will log one JSON line when done."],
     [["d1", "c4"], ["c4-d1"], "The service runs the setup the ablation picked: fixed chunks + BM25 inside the contract, top 8."],
     [["b3", "b6"], [], "Search takes milliseconds; the 4B model's answer takes minutes on CPU (seconds on a GPU)."],
@@ -1740,7 +1741,7 @@ const DIRS = {
   "src/contract_rag/generation": "Prompt and model client (VI)", "src/contract_rag/eval": "Exam, answer key, metrics, grading, runs (VII–X)",
   "src/contract_rag/analysis": "Failure triage (XI)", "src/contract_rag/api": "The web service (XII)", "ui": "The web page",
   "scripts": "Command-line entry points", "configs": "Every setting, in YAML", "tests": "Tests on a 3-contract fixture",
-  "deploy/space": "The Hugging Face Space", ".": "The API image",
+  "deploy/space": "The all-in-one image, model included", ".": "The API image",
 };
 (() => {
   const groups = {}, max = Math.max(...TREE.map(f => f[1]));
