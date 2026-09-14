@@ -15,6 +15,8 @@
   <a href="https://mazenddr.github.io/Contract-rag/tour/"><b>The tour</b></a> (one question, start to finish)
   &nbsp;·&nbsp;
   <a href="https://mazenddr.github.io/Contract-rag/demo/"><b>Try it</b></a> (70 recorded answers, graded)
+  &nbsp;·&nbsp;
+  <a href="docs/blog.md"><b>The story</b></a> (what 560 graded answers taught me)
 </p>
 
 ---
@@ -163,6 +165,6 @@ This project answers questions about one named contract at a time, over 100 cont
 
 PyMuPDF · tiktoken · NLTK · bm25s + PyStemmer · sentence-transformers (bge, e5) · Qdrant · cross-encoders · Ollama (`qwen3.5:4b`, `gemma4:12b`) · FastAPI · Streamlit · Docker
 
-## Data
+## License
 
-Contracts and annotations: [CUAD v1](https://www.atticusprojectai.org/cuad) by The Atticus Project, licensed CC BY 4.0.
+The code is released under the [MIT License](LICENSE). The contracts and annotations it evaluates on are [CUAD v1](https://www.atticusprojectai.org/cuad) by The Atticus Project, licensed separately under CC BY 4.0.
