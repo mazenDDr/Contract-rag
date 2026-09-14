@@ -1,0 +1,1755 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>contract-rag Field Guide</title>
+<meta name="description" content="Every part of contract-rag explained: how real contracts are parsed, cut, searched, answered, graded and served, with the measurements behind each choice.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* ---------- tokens (shared with the tour): red = the reviewer's pen, yellow = evidence, teal = the machine ---------- */
+:root{
+  --desk:#E9E8E3; --sheet:#FFFFFF; --sheet-2:#F7F6F2; --line:#D8D6CE; --line-soft:#E7E5DE;
+  --ink:#1A2233; --ink-2:#465063; --ink-3:#737B8A;
+  --pen:#C0272D; --pen-soft:#F7DEDF;
+  --hl:#FFE36A; --hl-ink:#1A2233;
+  --mach:#0E7C7B; --mach-2:#3A9E9C; --mach-soft:#D9EFEE; --mach-ink:#FFFFFF;
+  --ok:#2E7D4F; --ok-soft:#DFF0E4; --warn:#A86A12; --bad:#B3303A;
+  --shadow:0 1px 1px rgba(26,34,51,.05),0 12px 30px rgba(26,34,51,.10);
+  --serif:"Libre Caslon Text","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --display:"Libre Caslon Display","Libre Caslon Text","Iowan Old Style",Georgia,serif;
+  --sans:"IBM Plex Sans","Helvetica Neue",Arial,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --hand:"Caveat","Bradley Hand","Segoe Print",cursive;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --desk:#0E1014; --sheet:#171A21; --sheet-2:#1C2029; --line:#2C313C; --line-soft:#232832;
+    --ink:#E8E6E0; --ink-2:#B9BCC4; --ink-3:#8C919C;
+    --pen:#FF7A72; --pen-soft:#3A1F22;
+    --hl:#6B5A12; --hl-ink:#FFF4C2;
+    --mach:#4FD1C5; --mach-2:#3AA89E; --mach-soft:#17312F; --mach-ink:#0E1014;
+    --ok:#74CF97; --ok-soft:#1B3325; --warn:#E6B45A; --bad:#FF8A94;
+    --shadow:0 1px 1px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --desk:#0E1014; --sheet:#171A21; --sheet-2:#1C2029; --line:#2C313C; --line-soft:#232832;
+  --ink:#E8E6E0; --ink-2:#B9BCC4; --ink-3:#8C919C;
+  --pen:#FF7A72; --pen-soft:#3A1F22;
+  --hl:#6B5A12; --hl-ink:#FFF4C2;
+  --mach:#4FD1C5; --mach-2:#3AA89E; --mach-soft:#17312F; --mach-ink:#0E1014;
+  --ok:#74CF97; --ok-soft:#1B3325; --warn:#E6B45A; --bad:#FF8A94;
+  --shadow:0 1px 1px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--desk);color:var(--ink);font:400 17px/1.65 var(--serif);-webkit-font-smoothing:antialiased}
+a{color:var(--mach);text-underline-offset:3px}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:24px}
+@media (max-width:520px){.wrap{padding-inline:16px}}
+h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.01em;text-wrap:balance;margin:0}
+code{font:500 .84em/1.4 var(--mono);background:var(--sheet-2);border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;color:var(--ink);overflow-wrap:anywhere}
+.label{font:500 11.5px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.hand{font-family:var(--hand);color:var(--pen)}
+:focus-visible{outline:2px solid var(--mach);outline-offset:2px;border-radius:4px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:30;background:var(--desk);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:18px;height:58px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font:400 21px/1 var(--display)}
+.brand b{font:700 15px/1 var(--serif);color:var(--sheet);background:var(--ink);width:26px;height:26px;border-radius:50%;display:grid;place-items:center}
+.brand small{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.nav ul{display:flex;gap:2px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav a.nl{font:500 14.5px/1 var(--sans);color:var(--ink-2);text-decoration:none;padding:9px 10px;border-radius:8px}
+.nav a.nl:hover{background:var(--sheet);color:var(--ink)}
+.icon-btn{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:9px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer;flex:none}
+@media (max-width:820px){.nav li.opt{display:none}.brand small{display:none}}
+
+/* ---------- hero ---------- */
+.hero{padding-block:56px 30px}
+.hero h1{font-size:clamp(40px,5.4vw,70px);line-height:1;max-width:15em}
+.hero h1 em{font-style:italic;font-family:var(--serif);color:var(--pen)}
+.hero .lede{font-size:clamp(17px,1.7vw,19.5px);color:var(--ink-2);margin:20px 0 0;max-width:40em}
+.facts{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:30px}
+.facts div{background:var(--sheet);padding:14px 16px}
+.facts b{display:block;font:500 24px/1.1 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.facts span{display:block;margin-top:4px;font:400 13px/1.35 var(--sans);color:var(--ink-3)}
+@media (max-width:900px){.facts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:480px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.inks{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;font:500 13px/1.3 var(--sans);color:var(--ink-2)}
+.inks span{display:inline-flex;align-items:center;gap:7px}
+.inks i{width:22px;height:9px;border-radius:2px;display:inline-block}
+
+/* ---------- the map ---------- */
+.map-sec{padding-block:26px 40px}
+.sec-head{max-width:46em;margin-bottom:20px}
+.sec-head h2{font-size:clamp(30px,3.8vw,46px);line-height:1.04;margin-top:10px}
+.sec-head p{color:var(--ink-2);font-size:18px;margin:12px 0 0}
+.map-shell{background:var(--sheet);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);padding:16px}
+.map-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.map-bar .label{margin-right:4px}
+.pill{font:500 13.5px/1 var(--sans);border:1px solid var(--line);background:var(--sheet-2);color:var(--ink);border-radius:999px;padding:9px 13px;cursor:pointer}
+.pill:hover{border-color:var(--ink-3)}
+.pill[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.map-scroll{overflow-x:auto;border-radius:4px}
+.map-scroll svg{display:block;width:100%;min-width:900px;height:auto}
+.lane-bg{fill:var(--sheet-2);stroke:var(--line-soft)}
+.lane-t{font:500 11px var(--mono);letter-spacing:.08em;fill:var(--ink-3)}
+.node{cursor:pointer;transition:opacity .35s}
+.node rect{fill:var(--sheet);stroke:var(--line);stroke-width:1.2;transition:fill .35s,stroke .35s}
+.node .t{font:600 13px var(--sans);fill:var(--ink)}
+.node .f{font:400 10.5px var(--mono);fill:var(--ink-3)}
+.node:hover rect,.node:focus-visible rect{stroke:var(--mach);stroke-width:2}
+.node:focus{outline:none}
+.node.sel rect{fill:var(--mach-soft);stroke:var(--mach);stroke-width:2.4}
+.edge{fill:none;stroke:var(--ink-3);stroke-width:1.4;stroke-dasharray:5 5;animation:flow 1.6s linear infinite;opacity:.65;transition:opacity .35s,stroke .35s}
+@keyframes flow{to{stroke-dashoffset:-20}}
+.elabel{font:400 10.5px var(--sans);fill:var(--ink-3);transition:opacity .35s}
+.arrowhead{fill:var(--ink-3)}
+.arrowhead.lit{fill:var(--pen)}
+svg.tracing .node,svg.tracing .elabel{opacity:.25}
+svg.tracing .edge{opacity:.1}
+svg.tracing .node.lit,svg.tracing .elabel.lit{opacity:1}
+svg.tracing .node.lit rect{fill:var(--hl);stroke:var(--ink);stroke-width:1.6}
+svg.tracing .node.lit .t{fill:var(--hl-ink)}
+svg.tracing .node.lit .f{fill:var(--hl-ink)}
+svg.tracing .edge.lit{opacity:1;stroke:var(--pen);stroke-width:2.2}
+.map-cap{display:flex;gap:14px;align-items:flex-start;min-height:58px;margin-top:12px;padding:12px 14px;border-radius:6px;background:var(--sheet-2);font:400 14.5px/1.5 var(--sans);color:var(--ink)}
+.map-cap .stepno{flex:none;font:500 12px/1.9 var(--mono);color:var(--pen)}
+.card{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.9fr);gap:22px;margin-top:14px;padding:18px;border:1px solid var(--line);border-radius:6px}
+@media (max-width:900px){.card{grid-template-columns:1fr;gap:14px}}
+.card h3{font-size:26px;line-height:1.1;margin:6px 0 8px}
+.card p{margin:0;color:var(--ink-2);font:400 15px/1.55 var(--sans)}
+.card .files-list{display:flex;flex-direction:column;gap:3px;margin-top:10px}
+.card .files-list a{font:500 12.5px/1.4 var(--mono);overflow-wrap:anywhere}
+.card dl{margin:0;display:grid;gap:8px;font:400 14px/1.45 var(--sans);color:var(--ink-2)}
+.card dt{font:500 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.card dd{margin:0}
+.fnlist{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.fnlist code{font-size:12px}
+.card .go{display:inline-block;margin-top:12px;font:600 14px/1 var(--sans)}
+
+/* ---------- guide layout ---------- */
+.guide{display:grid;grid-template-columns:200px minmax(0,1fr);gap:52px;padding-block:10px 30px}
+@media (max-width:1100px){.guide{grid-template-columns:minmax(0,1fr)}.toc{display:none}}
+.toc{position:sticky;top:76px;align-self:start;font:500 13.5px/1.3 var(--sans);max-height:calc(100vh - 90px);overflow:auto}
+.toc ol{list-style:none;padding:0;margin:0;display:grid;gap:1px}
+.toc a{display:flex;gap:8px;padding:6px 8px;border-radius:6px;color:var(--ink-2);text-decoration:none}
+.toc a:hover{background:var(--sheet)}
+.toc a .n{flex:none;font:500 11px/1.6 var(--mono);color:var(--ink-3);width:24px}
+.toc a.on{background:var(--sheet);color:var(--ink);box-shadow:inset 3px 0 0 var(--pen)}
+.toc .grp{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:16px 8px 6px}
+.toc .grp:first-child{margin-top:0}
+
+.art{padding-block:50px;border-top:1px solid var(--line)}
+.art-head{max-width:46em;margin-bottom:24px}
+.art-no{font:500 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--pen)}
+.art-head h2{font-size:clamp(30px,3.5vw,44px);line-height:1.05;margin-top:10px}
+.art-head .sum{font-size:19px;color:var(--ink-2);margin:12px 0 0}
+.art-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:34px;align-items:start}
+@media (max-width:1000px){.art-body{grid-template-columns:minmax(0,1fr)}}
+.prose{max-width:38em}
+.prose p{margin:0 0 14px;color:var(--ink-2)}
+.prose p b,.prose li b{color:var(--ink)}
+.prose ol,.prose ul{margin:0 0 14px;padding-left:1.25em;color:var(--ink-2)}
+.prose li{margin-bottom:7px}
+.prose h3{font:700 17px/1.3 var(--serif);margin:22px 0 8px;color:var(--ink)}
+.fig{margin:0;background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.fig-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.replay{font:500 12px/1 var(--sans);border:1px solid var(--line);background:var(--sheet-2);color:var(--ink-2);border-radius:999px;padding:7px 11px;cursor:pointer;flex:none}
+.replay:hover{border-color:var(--ink-3);color:var(--ink)}
+.fig figcaption{font:400 13px/1.5 var(--sans);color:var(--ink-3);margin-top:14px}
+.fig figcaption b{color:var(--ink-2);font-weight:600}
+.art-foot{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:18px;margin-top:26px;align-items:start}
+@media (max-width:1000px){.art-foot{grid-template-columns:minmax(0,1fr)}}
+.files{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:14px 18px}
+.files .label{display:block;margin-bottom:6px}
+.files table{width:100%;border-collapse:collapse;font:400 13.5px/1.45 var(--sans);color:var(--ink-2)}
+.files td{padding:8px 0;border-top:1px solid var(--line-soft);vertical-align:top}
+.files tr:first-child td{border-top:0}
+.files td:first-child{padding-right:16px;width:1%;white-space:nowrap}
+.files td:first-child a{font:500 12.5px/1.45 var(--mono)}
+@media (max-width:560px){.files td{display:block;width:auto!important;white-space:normal!important;padding:2px 0}.files td:first-child{padding-top:8px}.files td:first-child a{overflow-wrap:anywhere}}
+.why{border-left:3px solid var(--pen);background:var(--pen-soft);border-radius:0 6px 6px 0;padding:12px 16px;font:400 14.5px/1.55 var(--sans);color:var(--ink)}
+.why b{font-weight:600}
+.why .hand{font-size:22px;display:block;line-height:1;margin-bottom:6px}
+.why p{margin:0 0 8px}.why p:last-child{margin:0}
+.nums{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.num{font:500 12.5px/1.2 var(--mono);background:var(--sheet);border:1px solid var(--line);border-radius:5px;padding:7px 9px;color:var(--ink-2)}
+.num b{color:var(--mach);font-weight:500}
+.part-h{padding-block:40px 0}
+.part-h .label{color:var(--mach)}
+.part-h h2{font-size:clamp(24px,2.6vw,32px);margin-top:8px}
+
+/* shared figure bits */
+.seg-btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.mini{font:500 12px/1 var(--mono);border:1px solid var(--line);background:var(--sheet-2);color:var(--ink-2);border-radius:5px;padding:7px 9px;cursor:pointer}
+.mini[aria-pressed="true"]{background:var(--mach);border-color:var(--mach);color:var(--mach-ink)}
+.note{font:400 13.5px/1.5 var(--sans);color:var(--ink-2);min-height:3em;margin-top:10px}
+.tag{font:500 10.5px/1 var(--mono);color:var(--mach);background:var(--mach-soft);border-radius:4px;padding:4px 6px;white-space:nowrap}
+.cite{font:500 12px/1 var(--mono);color:var(--mach-ink);background:var(--mach);border-radius:5px;padding:3px 5px;vertical-align:1px}
+.hbars{display:grid;gap:7px;font:400 12.5px/1.3 var(--sans);color:var(--ink-2)}
+.hb{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.7fr) 64px;gap:10px;align-items:center}
+.hb .tr{position:relative;height:14px;background:var(--sheet-2);border-radius:3px}
+.hb .br{position:absolute;top:0;bottom:0;left:0;background:var(--mach);border-radius:3px;transition:width .9s cubic-bezier(.2,.7,.2,1),left .9s cubic-bezier(.2,.7,.2,1)}
+.hb .v{font:500 12px/1 var(--mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.axis-note{display:flex;justify-content:space-between;font:500 10.5px/1 var(--mono);color:var(--ink-3);margin-top:6px}
+</style>
+<style>
+/* ---------- figures ---------- */
+/* corpus */
+.types{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 10px;align-items:center;font:400 11.5px/1 var(--sans)}
+.tname{color:var(--ink-3);text-align:right;white-space:nowrap}
+.dots{display:flex;flex-wrap:wrap;gap:2px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background .35s,transform .35s}
+.dots i.pick{background:var(--mach);transform:scale(1.2)}
+@media (max-width:480px){.tname{max-width:88px;overflow:hidden;text-overflow:ellipsis}.dots i{width:6px;height:6px}}
+/* parse */
+.pg{position:relative;background:var(--sheet-2);border:1px solid var(--line);border-radius:4px;padding:16px 18px;display:grid;gap:9px;overflow:hidden}
+.pb{position:relative;border-radius:3px;padding:4px 6px;border:1px dashed transparent;transition:border-color .3s,background .3s,opacity .3s}
+.pb::after{content:attr(data-kind);position:absolute;right:6px;top:50%;transform:translateY(-50%);font:500 10.5px/1 var(--mono);color:var(--mach);background:var(--mach-soft);border-radius:4px;padding:4px 6px;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:62%;overflow:hidden;text-overflow:ellipsis}
+.pb.tagged{border-color:var(--mach)}
+.pb.tagged::after{opacity:1}
+.pb i{display:block;height:6px;border-radius:3px;background:var(--line);margin:5px 0}
+.pb .htxt{font:700 13px/1.3 var(--serif);color:var(--ink)}
+.pb .mtxt{font:500 10.5px/1.3 var(--mono);color:var(--ink-3)}
+.pb.t{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;max-width:58%}
+.pb.t span{height:14px;border:1px solid var(--line);border-radius:2px}
+.pb.drop.tagged{border-color:var(--pen);opacity:.75}
+.pb.drop.tagged::after{color:var(--pen);background:var(--pen-soft)}
+.pb.drop.tagged .mtxt{text-decoration:line-through;text-decoration-color:var(--pen);text-decoration-thickness:2px}
+.scan{position:absolute;left:0;right:0;top:0;height:2px;background:var(--mach);box-shadow:0 0 12px var(--mach);opacity:0;pointer-events:none}
+@media (max-width:560px){.pb::after{font-size:9.5px;max-width:70%}}
+/* chunks */
+.ctext{font:400 13.5px/1.85 var(--serif);color:var(--ink-2);text-align:justify;hyphens:auto;max-height:300px;overflow:auto;padding-right:6px}
+.ctext .s{border-radius:2px;transition:background-color .45s,box-shadow .45s;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.ctext .s.c1{background:color-mix(in srgb,var(--mach) 17%,transparent)}
+.ctext .s.c2{background:color-mix(in srgb,var(--pen) 12%,transparent)}
+.ctext .s.both{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--mach) 24%,transparent) 0 6px,color-mix(in srgb,var(--pen) 17%,transparent) 6px 12px)}
+.ctext .s.ev{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+.ctext .cut{display:inline-block;width:0;position:relative}
+.ctext .cut::after{content:"✂";position:absolute;left:-7px;top:-1.2em;font-size:12px;color:var(--pen)}
+/* labels */
+.align-steps{margin:0 0 14px;padding-left:1.3em;font:400 13.5px/1.5 var(--sans);color:var(--ink-2);display:grid;gap:4px}
+.align-steps li{transition:opacity .4s}
+.align-steps li.off{opacity:0}
+.lab{display:grid;gap:7px}
+.lrow{display:grid;grid-template-columns:128px minmax(0,1fr) 86px;gap:10px;align-items:center;font:500 11.5px/1.2 var(--mono);color:var(--ink-2)}
+.track{position:relative;height:18px;background:var(--sheet-2);border-radius:3px;overflow:hidden}
+.track .bar{position:absolute;top:3px;bottom:3px;background:var(--line);border-radius:2px;transition:width .7s cubic-bezier(.2,.7,.2,1),background .4s}
+.track .bar.rel{background:var(--mach)}
+.track .band{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--hl) 75%,transparent);outline:1px solid var(--warn);mix-blend-mode:multiply;transition:opacity .4s}
+:root[data-theme="dark"] .track .band{mix-blend-mode:screen}
+.lrow .vd{font:500 11.5px/1.2 var(--sans);transition:opacity .4s}
+.lrow .vd.yes{color:var(--ok)}.lrow .vd.no{color:var(--ink-3)}
+.lab.hide .vd{opacity:0}.lab.hide .band{opacity:0}
+@media (max-width:560px){.lrow{grid-template-columns:96px minmax(0,1fr) 60px;font-size:10px}}
+/* bm25 words */
+.words{display:flex;flex-wrap:wrap;gap:6px}
+.w{font:500 12.5px/1 var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--sheet-2);color:var(--ink);transition:opacity .4s,background .4s,border-color .4s,color .4s}
+.w.stop{text-decoration:line-through;text-decoration-color:var(--pen);color:var(--ink-3);opacity:.55}
+.w.term{border-color:var(--mach);background:var(--mach-soft)}
+.hbars .hb.hit .br{background:var(--mach)}
+.hbars .hb.miss .br{background:var(--ink-3)}
+.hbars .hb.hit{color:var(--ink);font-weight:600}
+/* fusion list */
+.flist{position:relative}
+.frow{position:absolute;left:0;right:0;height:26px;display:grid;grid-template-columns:30px minmax(0,1fr) 108px;align-items:center;gap:8px;padding:0 10px;border-radius:5px;background:var(--sheet-2);border:1px solid var(--line-soft);font:500 12px/1 var(--mono);color:var(--ink-2);transition:top .7s cubic-bezier(.2,.7,.2,1),background .3s}
+.frow .rk{color:var(--ink-3)}
+.frow .sc{text-align:right;font-variant-numeric:tabular-nums}
+.frow.hit{background:var(--mach-soft);border-color:var(--mach);color:var(--ink)}
+.frow.cut8{opacity:.5}
+.flist .line8{position:absolute;left:0;right:0;border-top:2px dashed var(--pen)}
+.flist .line8 span{position:absolute;right:0;top:-9px;background:var(--sheet);padding:0 6px;font:500 10.5px/1.4 var(--mono);color:var(--pen)}
+/* heatmap and CI rows */
+.hm{display:grid;gap:10px}
+.hm-row{display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;align-items:start;font:500 11.5px/1.3 var(--mono);color:var(--ink-2)}
+.cells{display:flex;flex-wrap:wrap;gap:3px}
+.cells i{width:13px;height:13px;border-radius:2px;background:var(--sheet-2);transition:opacity .25s;cursor:default}
+.cells i.best{outline:2px solid var(--pen);outline-offset:1px}
+.hm.hide .cells i{opacity:0}
+.ci{display:grid;gap:9px}
+.cirow{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.75fr) 60px;gap:10px;align-items:center;font:400 12.5px/1.3 var(--sans);color:var(--ink-2)}
+.citr{position:relative;height:18px}
+.citr .zero{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--ink-3)}
+.citr .br{position:absolute;top:4px;height:10px;border-radius:2px;background:var(--mach);transition:left .9s cubic-bezier(.2,.7,.2,1),width .9s cubic-bezier(.2,.7,.2,1)}
+.citr .br.neg{background:var(--pen)}
+.citr .wh{position:absolute;top:8px;height:2px;background:var(--ink);transition:opacity .5s .5s}
+.citr .wh::before,.citr .wh::after{content:"";position:absolute;top:-4px;width:2px;height:10px;background:var(--ink)}
+.citr .wh::before{left:0}.citr .wh::after{right:0}
+.citr .dot{position:absolute;top:3px;width:12px;height:12px;border-radius:50%;background:var(--pen);border:2px solid var(--sheet);transform:translateX(-50%);transition:left .9s cubic-bezier(.2,.7,.2,1),opacity .4s}
+.cirow .v{font:500 12px/1 var(--mono);text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.cirow.best{color:var(--ink);font-weight:600}
+.ci.hide .br{width:0!important}.ci.hide .wh,.ci.hide .dot{opacity:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font:400 12px/1.3 var(--sans);color:var(--ink-2);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+/* prompt */
+.prompt{font:400 12px/1.6 var(--mono);background:var(--sheet-2);border:1px solid var(--line);border-radius:6px;padding:12px 14px;color:var(--ink-2);display:grid;gap:2px}
+.prompt .pl{transition:opacity .3s}
+.prompt .pl.off{opacity:0}
+.prompt .role{color:var(--pen);font-weight:500}
+.prompt .ex5{color:var(--ink);background:var(--hl);border-radius:2px}
+.out{margin-top:10px;font:500 13.5px/1.55 var(--mono);color:var(--ink);background:var(--mach-soft);border-radius:6px;padding:12px 14px;min-height:5.2em;white-space:pre-wrap;overflow-wrap:anywhere}
+.out .caret{display:inline-block;width:7px;height:1.05em;background:var(--mach);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+/* judge */
+.jq{font:400 13.5px/1.5 var(--sans);color:var(--ink-2);margin-bottom:10px}
+.jq b{color:var(--ink)}
+.stmts{display:grid;gap:8px}
+.st{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--sheet-2);display:grid;gap:7px;transition:opacity .4s,transform .4s,border-color .4s}
+.st.off{opacity:0;transform:translateY(8px)}
+.st .stext{font:500 13.5px/1.45 var(--sans);color:var(--ink)}
+.st .ex{font:400 11.5px/1.5 var(--mono);color:var(--ink-3);border-left:2px solid var(--line);padding-left:8px;max-height:6.2em;overflow:hidden}
+.st .vd{font:600 12.5px/1.4 var(--sans);transition:opacity .4s}
+.st .vd.off{opacity:0}
+.st.yes{border-color:var(--ok)}.st.yes .vd{color:var(--ok)}
+.st.no{border-color:var(--pen)}.st.no .vd{color:var(--pen)}
+.jscores{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;transition:opacity .4s}
+.jscores.off{opacity:0}
+.jscores .num b{color:var(--ink)}
+.jscores .num.good b{color:var(--ok)}.jscores .num.warn b{color:var(--pen)}
+/* matrix phases */
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.phase{border:1px solid var(--line);border-radius:6px;padding:8px 10px;font:400 12px/1.35 var(--sans);color:var(--ink-3);transition:background .35s,border-color .35s,color .35s}
+.phase b{display:block;font:600 13px/1.3 var(--sans);color:var(--ink-2)}
+.phase.on{background:var(--hl);border-color:var(--ink);color:var(--hl-ink)}
+.phase.on b{color:var(--hl-ink)}
+/* triage */
+.tcase{font:400 13.5px/1.45 var(--sans);color:var(--ink-2);min-height:3.2em;margin-bottom:10px}
+.tcase b{color:var(--ink)}
+.gates{display:grid;gap:4px}
+.gate{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line-soft);border-radius:6px;font:400 13px/1.3 var(--sans);color:var(--ink-2);background:var(--sheet-2);transition:border-color .3s,background .3s,opacity .3s}
+.gate .mk{font:700 13px/1 var(--sans);text-align:center}
+.gate .cat{font:500 11px/1 var(--mono);color:var(--pen);opacity:0;transition:opacity .3s}
+.gate.pass{border-color:var(--ok)}.gate.pass .mk{color:var(--ok)}
+.gate.fail{border-color:var(--pen);background:var(--pen-soft);color:var(--ink)}.gate.fail .mk{color:var(--pen)}.gate.fail .cat{opacity:1}
+.gate.skip{opacity:.4}
+.hb .br.gen{background:var(--pen)}
+.hb .ghost{position:absolute;top:0;bottom:0;left:0;border:1px dashed var(--ink-3);border-radius:3px}
+/* serve */
+.seq{display:grid;gap:5px}
+.sq{display:grid;grid-template-columns:78px minmax(0,1fr) 62px;gap:8px;align-items:center;font:400 12.5px/1.35 var(--sans);color:var(--ink-2);transition:opacity .35s,transform .35s}
+.sq.off{opacity:0;transform:translateX(-6px)}
+.sq .who{font:500 11px/1 var(--mono);color:var(--mach-ink);background:var(--mach);border-radius:4px;padding:5px 6px;text-align:center}
+.sq .who.m{background:var(--ink);color:var(--sheet)}
+.sq .t{font:500 12px/1 var(--mono);text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.logline{margin:12px 0 0;font:400 11px/1.55 var(--mono);color:var(--ink-2);background:var(--sheet-2);border:1px solid var(--line);border-radius:6px;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere;transition:opacity .4s}
+.logline.off{opacity:0}
+.sizes{display:grid;gap:6px}
+.size{display:grid;grid-template-columns:90px repeat(3,minmax(0,1fr));gap:6px;align-items:center;font:400 12px/1.3 var(--sans);color:var(--ink-2)}
+.size .m{font:500 12px/1 var(--mono);color:var(--ink)}
+.size .cell{background:var(--sheet-2);border-radius:4px;padding:6px 8px;display:flex;justify-content:space-between;gap:6px}
+.size .cell b{font:500 12px/1 var(--mono);color:var(--ink)}
+.size.head{color:var(--ink-3);font-size:11px}
+.size.head .cell{background:none;padding:0 8px}
+.size.pickd .cell{background:var(--mach-soft)}
+@media (max-width:560px){.size{grid-template-columns:60px repeat(3,minmax(0,1fr))}.size .cell{flex-direction:column}}
+/* appendices */
+.codeblock{background:var(--sheet);border:1px solid var(--line);border-radius:6px;overflow-x:auto}
+.codeblock pre{margin:0;padding:18px 20px;font:400 13px/1.7 var(--mono);color:var(--ink)}
+.codeblock code{background:none;border:0;padding:0;font:inherit}
+.codeblock .c{color:var(--ink-3)}
+.tree{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.tdir{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.tdir h3{font:600 13px/1.3 var(--mono);color:var(--ink);margin-bottom:6px}
+.tdir p{margin:0 0 8px;font:400 12.5px/1.4 var(--sans);color:var(--ink-3)}
+.tfile{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:8px;align-items:center;padding:3px 6px;margin-bottom:2px;border-radius:3px;font:400 12.5px/1.3 var(--mono);background:linear-gradient(90deg,var(--mach-soft) var(--w),transparent var(--w))}
+.tfile a{overflow-wrap:anywhere}
+.tfile .lnum{font:400 11px/1.3 var(--mono);color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px 26px;margin:0}
+.gloss div{border-top:1px solid var(--line);padding-top:10px}
+.gloss dt{font:600 14.5px/1.3 var(--sans);color:var(--ink)}
+.gloss dd{margin:4px 0 0;font:400 14px/1.5 var(--sans);color:var(--ink-2)}
+.foot{border-top:1px solid var(--line);padding-block:26px 40px;font:400 13.5px/1.5 var(--sans);color:var(--ink-3)}
+.foot .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#top"><b>§</b>contract-rag <small>field guide</small></a>
+    <ul>
+      <li class="opt"><a class="nl" href="#map">Map</a></li>
+      <li class="opt"><a class="nl" href="#part-build">Build</a></li>
+      <li class="opt"><a class="nl" href="#part-answer">Answer</a></li>
+      <li class="opt"><a class="nl" href="#part-measure">Measure</a></li>
+      <li class="opt"><a class="nl" href="#part-serve">Serve</a></li>
+      <li><a class="nl" href="tour/">The tour</a></li>
+      <li><a class="nl" href="https://github.com/mazenDDr/Contract-rag">GitHub</a></li>
+    </ul>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch between light and dark mode" title="Light / dark">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <span class="label">Field guide · every part of the project, explained</span>
+    <h1 style="margin-top:14px">How contract-rag <em>reads</em> a contract, part by part.</h1>
+    <p class="lede">contract-rag answers questions about real commercial contracts and cites the clause each answer came from. This guide walks through every file in the repository in the order data flows through it. For each part you get what it does, a small animation of it working on real data, the files that hold it, and why it was built that way instead of another way.</p>
+    <div class="facts" aria-label="The project in numbers">
+      <div><b>100</b><span>real contracts (of CUAD's 510)</span></div>
+      <div><b>1,580</b><span>PDF pages parsed, 0 failures</span></div>
+      <div><b>28,642</b><span>chunks, cut three ways</span></div>
+      <div><b>189</b><span>search setups compared</span></div>
+      <div><b>560</b><span>answers graded line by line</span></div>
+      <div><b>94</b><span>automated tests</span></div>
+    </div>
+    <div class="inks" aria-label="How to read the colours">
+      <span><i style="background:var(--mach)"></i>teal: what the machine does</span>
+      <span><i style="background:var(--hl)"></i>yellow: evidence, or the step being traced</span>
+      <span><i style="background:var(--pen)"></i>red pen: why this and not that</span>
+    </div>
+  </div>
+</header>
+
+<section class="map-sec" id="map" aria-labelledby="map-h">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="label">The map</span>
+      <h2 id="map-h">Every box is a file you can open.</h2>
+      <p>The project has four lanes. The library is built once, a question is answered on every request, the harness measures both, and the service puts the winning setup online. Press a route to watch data move through it, or click any box to see what it holds.</p>
+    </div>
+    <div class="map-shell">
+      <div class="map-bar" role="group" aria-label="Routes through the map">
+        <span class="label">Follow</span>
+        <button class="pill" type="button" data-tour="build" aria-pressed="false">Building the library</button>
+        <button class="pill" type="button" data-tour="ask" aria-pressed="false">One question</button>
+        <button class="pill" type="button" data-tour="measure" aria-pressed="false">The evaluation</button>
+        <button class="pill" type="button" data-tour="serve" aria-pressed="false">A live request</button>
+      </div>
+      <div class="map-scroll">
+        <svg id="mapSvg" viewBox="0 0 1120 650" role="img" aria-label="System map: the build lane (download, parse, chunk, index) feeds the answer lane (question, scope, search, fuse and rerank, prompt, generate, answer). The measure lane (questions, answer key, search scores, ablation, matrix run, judge, calibration, failure triage) scores both, and the serve lane (service, API, Docker image, Space, UI) runs the best setup."></svg>
+      </div>
+      <div class="map-cap" id="mapCap" aria-live="polite"><span class="stepno">·</span><span>Pick a route above, or click a box.</span></div>
+      <div class="card" id="nodeCard"></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap guide">
+  <aside class="toc" aria-label="Contents">
+    <ol id="toc"></ol>
+  </aside>
+  <main id="articles">
+
+<div class="part-h" id="part-build"><span class="label">Part one · built once, offline</span><h2>Building the library</h2></div>
+
+<article class="art" id="a-corpus" data-toc="I|The contracts">
+  <header class="art-head">
+    <span class="art-no">Article I</span>
+    <h2>The contracts: CUAD, and a 100-contract working set</h2>
+    <p class="sum">Everything starts from a public dataset of real agreements that lawyers have already marked up, so every answer can be checked against a human reading.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <p><b>CUAD</b> (the Contract Understanding Atticus Dataset) is 510 commercial contracts filed publicly with the SEC. Lawyers highlighted the exact text for 41 kinds of clause, such as governing law, termination for convenience, cap on liability and non-compete, over 13,000 highlights in all. Those highlights become the project's answer key.</p>
+      <p>The download step fetches the archive from Zenodo and checks its MD5 fingerprint. Downloads resume after a dropped connection, and the file is only renamed into place once complete. Extraction is safe to re-run. It then reconciles three inventories that don't line up on their own: the PDFs, the plain-text copies, and the lawyers' spreadsheet (<code>master_clauses.csv</code>). The result is one manifest row per contract.</p>
+      <p>Every experiment runs on <b>100 of the 510</b>. They are picked by stratified sampling, so each of the 25 contract types keeps its share, and each type gets at least one. A fixed seed (42) means the same 100 come back every time. Three tiny contracts are also copied into <code>tests/fixtures/</code>, so the test suite runs in seconds without the real data.</p>
+    </div>
+    <figure class="fig" data-anim="corpus">
+      <div class="fig-top"><span class="label">510 contracts · 25 types</span><button class="replay" type="button">Replay</button></div>
+      <div id="corpusGrid" class="types"></div>
+      <div class="note" id="corpusNote">Each dot is one contract. Teal dots are the 100 in the working set: every type keeps its proportion.</div>
+      <figcaption>Real counts from <b>data/processed/cuad_manifest.jsonl</b> and <b>dev_manifest.jsonl</b>.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/ingest/download.py">ingest/download.py</a></td><td>Resumable, checksum-verified download; safe extraction; the manifest (<code>build_manifest</code>); the stratified subset (<code>stratified_subset</code>); the 3-contract test fixture (<code>build_fixture</code>).</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/configs/ingest.yaml">configs/ingest.yaml</a></td><td>Archive URL and MD5, subset size (100), seed (42).</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/schemas.py">schemas.py</a></td><td>The data shapes every stage passes on: <code>Document</code>, <code>Block</code>, <code>Chunk</code>, <code>EvalQuestion</code>, <code>RetrievalResult</code>, <code>GenerationResult</code>, <code>EvalScores</code>.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>CUAD over synthetic or scraped contracts:</b> it's real, messy legal text with answers a lawyer marked. That makes "is the answer right?" a measurement rather than an opinion.</p>
+      <p><b>100 contracts, not 510:</b> every design choice is an experiment re-run many times on one laptop. 100 keeps a full search comparison to about 16 minutes.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-parse" data-toc="II|Reading PDFs">
+  <header class="art-head">
+    <span class="art-no">Article II</span>
+    <h2>Reading the PDFs, not just their text</h2>
+    <p class="sum">The parser keeps what plain text throws away: which lines are headings, which are tables, what page they're on, and exactly where each piece sits in the document.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <p>The parser uses <b>PyMuPDF</b> to read every text block on a page, along with its font size and how much of it is bold. Each block is then sorted into one of five kinds:</p>
+      <ul>
+        <li><b>Heading:</b> it starts with a clause number (<code>4.</code>, <code>12.2</code>, <code>Section 3</code>, <code>Article IV</code>), or it looks like one. That means it's short, it isn't a full sentence, and it's bold (45% or more), or at least 1.15× the body font size, or all capitals.</li>
+        <li><b>Table:</b> found by <code>page.find_tables()</code> and kept as a Markdown table, so rows and columns survive.</li>
+        <li><b>Paragraph</b>, <b>list item</b> or <b>other</b> for the rest.</li>
+      </ul>
+      <p><b>Running headers and footers are dropped.</b> Short text in the top or bottom margin that repeats on at least half the pages ("Page 3 of 12", "CONFIDENTIAL") would otherwise land in the middle of clauses.</p>
+      <p>Lines are joined, words split by a hyphen at a line break are rejoined, and the text is normalized. The result is one <code>Document.full_text</code> per contract. Every block records its <b>character offsets</b> into that text, its page, and its <b>section path</b> (for example <code>["4. Term and Termination"]</code>). Everything downstream points back into the document through those offsets.</p>
+      <p>Each document's parse is cached on disk, and a crash only loses the file in progress.</p>
+    </div>
+    <figure class="fig" data-anim="parse">
+      <div class="fig-top"><span class="label">One page, classified</span><button class="replay" type="button">Replay</button></div>
+      <div class="pg" id="pg">
+        <div class="scan" aria-hidden="true"></div>
+        <div class="pb drop" data-kind="margin: repeats on half the pages, so it's dropped"><span class="mtxt">EXHIBIT 10.14</span></div>
+        <div class="pb h" data-kind="heading: bold and larger than the body"><span class="htxt">MASTER SERVICES AGREEMENT</span></div>
+        <div class="pb p" data-kind="paragraph"><i style="width:96%"></i><i style="width:100%"></i><i style="width:88%"></i><i style="width:64%"></i></div>
+        <div class="pb h" data-kind="heading: numbered clause 4."><span class="htxt">4. Term and Termination.</span></div>
+        <div class="pb p" data-kind="list item"><i style="width:100%"></i><i style="width:97%"></i><i style="width:58%"></i></div>
+        <div class="pb t" data-kind="table: kept as Markdown"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="pb drop" data-kind="margin: page number, dropped"><span class="mtxt">Page 1 of 5</span></div>
+      </div>
+      <div class="hbars" style="margin-top:14px" id="blockBars"></div>
+      <figcaption>The page is a drawing. The counts are real: all <b>17,516 blocks</b> from 100 PDFs and 1,580 pages, parsed in 67 s with 0 failures (<b>data/processed/parse_report.json</b>).</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/ingest/parse_pdf.py">ingest/parse_pdf.py</a></td><td><code>parse_pdf</code> for one file; <code>_repeated_margin_keys</code> (headers/footers); <code>_numbered_heading</code> and <code>_looks_like_visual_heading</code>; <code>table_to_markdown</code>; <code>parse_manifest</code> with per-document caching.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/ingest/normalize.py">ingest/normalize.py</a></td><td>Unicode and whitespace normalization; joins wrapped lines and repairs hyphenation.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/configs/parse_pdf.yaml">configs/parse_pdf.yaml</a></td><td>Input manifest, output paths, margin and heading thresholds.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>Our own parse, not CUAD's .txt files:</b> the text files have no headings, tables or pages, and section-aware chunking and page citations need all three.</p>
+      <p><b>PyMuPDF over heavier layout tools:</b> it's fast, runs locally, and exposes fonts and bold directly. That was enough to reach 0 parse failures.</p>
+      <p><b>Catch:</b> CUAD's highlight offsets point into <i>its</i> text files, not ours. Article VII shows how the answer key is re-aligned.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-chunk" data-toc="III|Cutting chunks">
+  <header class="art-head">
+    <span class="art-no">Article III</span>
+    <h2>Cutting the text into chunks, three different ways</h2>
+    <p class="sum">Search returns pieces, not whole contracts. Where the cuts fall decides whether a clause arrives whole, split in two, or buried in unrelated text, so the cut is an experiment variable.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <p>All three strategies cut on exact character offsets, count tokens with <code>tiktoken</code> (<code>cl100k_base</code>), and give each chunk a stable id, <code>{doc}::{strategy}::{index}</code>, which the answer later cites.</p>
+      <ul>
+        <li><b>Fixed:</b> windows of 512 tokens that overlap by 64, cut wherever the count runs out. 2,166 chunks; nearly all are exactly 512 tokens.</li>
+        <li><b>Section:</b> a new chunk at every detected heading; a section longer than 512 tokens is subdivided, and nothing is ever merged across headings. 5,578 chunks, median 110 tokens.</li>
+        <li><b>Sentence window:</b> one sentence per chunk (NLTK's Punkt splitter, taught legal abbreviations so "Sec." or "Inc." don't end a sentence). The model is shown that sentence with three sentences either side (<code>context_text</code>). 20,898 chunks, median 34 tokens.</li>
+      </ul>
+      <p>Each chunk also keeps its section path, pages, and whether it holds a table, so an answer can say <i>where</i> it read something.</p>
+      <h3>What the figure shows</h3>
+      <p>The same passage of the Kubient × Associated Press services agreement, cut all three ways. The underlined sentence is the clause a lawyer highlighted for "can a party end it early without cause?".</p>
+    </div>
+    <figure class="fig" data-anim="chunk">
+      <div class="fig-top"><span class="label">One passage, three knives</span><button class="replay" type="button">Replay</button></div>
+      <div class="seg-btns" role="group" aria-label="Chunking strategy">
+        <button class="mini" type="button" data-mode="fixed" aria-pressed="true">fixed 512/64</button>
+        <button class="mini" type="button" data-mode="section" aria-pressed="false">section</button>
+        <button class="mini" type="button" data-mode="sentence_window" aria-pressed="false">sentence window</button>
+      </div>
+      <div class="ctext" id="ctext"></div>
+      <div class="note" id="cnote"></div>
+      <div class="hbars" id="chunkBars" style="margin-top:6px"></div>
+      <figcaption>Real offsets from <b>data/processed/chunks/*.jsonl</b>. Bars: chunks in the 100 contracts, labelled with the median tokens per chunk.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/chunking/base.py">chunking/base.py</a></td><td><code>BaseChunker</code>: exact offsets, token counting, token windows, the deepest shared section path.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/chunking/fixed.py">chunking/fixed.py</a></td><td><code>FixedChunker</code>: 512-token windows with a 64-token overlap.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/chunking/section.py">chunking/section.py</a></td><td><code>SectionChunker</code>: splits at headings, subdivides long sections, never merges across one.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/chunking/sentence_window.py">chunking/sentence_window.py</a></td><td><code>SentenceWindowChunker</code>: Punkt sentences with legal abbreviations, ±3-sentence context.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/chunking/run.py">chunking/run.py</a></td><td>Runs the strategies from <code>configs/chunking.yaml</code>; writes the chunk files and <code>chunk_stats.json</code>.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>Three strategies instead of one:</b> nobody knows the right cut for contracts in advance, so it was measured. <b>Fixed won search</b> (recall@8 0.85, against 0.74 for section and 0.58 for sentence). Most contracts are only about 13 fixed chunks long, so the right one is usually close to the top.</p>
+      <p><b>But smaller chunks give more faithful answers</b> (Article X). A 512-token chunk holds several provisions, and a small model sometimes mixes them up.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-index" data-toc="IV|Indexes">
+  <header class="art-head">
+    <span class="art-no">Article IV</span>
+    <h2>Two kinds of index: words and meanings</h2>
+    <p class="sum">Every chunk is indexed twice: once by the words it contains (BM25) and once by what it means (embeddings), so the two can be compared, and combined.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <h3>BM25: matching words</h3>
+      <p>BM25 is the classic keyword ranking. A chunk scores higher the more of the question's words it contains, especially rare words, with a correction so long chunks don't win just by being long (<code>k1 = 1.5</code>, <code>b = 0.75</code>). Before counting, common words like "a", "the" and "and" are dropped and the rest are <b>stemmed</b>, so "notice", "notices" and "noticed" all become <code>notic</code>. The index is built with <code>bm25s</code>, and it scores every chunk for every query, so limiting a search to one contract is exact rather than a filter over a cut-off list.</p>
+      <h3>Embeddings: matching meaning</h3>
+      <p>An embedding model turns a text into a list of numbers such that texts with similar meaning land near each other, so "end the agreement early" can find "terminate for convenience" with no shared word. Three open models run locally: <b>bge-small</b> (33M parameters), <b>bge-base</b> (110M) and <b>e5-base</b> (110M). small vs base tests size, and bge vs e5 tests model family. The vectors live in a local <b>Qdrant</b> database, one collection per chunking × model, with the contract id indexed so a search can stay inside one contract.</p>
+      <p>Embedding 28,642 chunks three times is the slowest part of the build, so every vector is cached in SQLite, keyed by the model name and a SHA-256 hash of the exact text. Fixing a bug elsewhere never forces anything to be re-embedded.</p>
+    </div>
+    <figure class="fig" data-anim="bm25">
+      <div class="fig-top"><span class="label">A question becomes search terms</span><button class="replay" type="button">Replay</button></div>
+      <div class="words" id="words"></div>
+      <div class="note" id="wnote"></div>
+      <div class="label" style="margin:14px 0 8px">All 12 chunks of the contract, scored</div>
+      <div class="hbars" id="bm25Bars"></div>
+      <figcaption>Tokens from the project's own BM25 settings; scores are the saved BM25 stage for question q0078. <b>Teal</b> bars hold the lawyer-highlighted clause: BM25 ranks them 5th and 9th. That's still inside the 8 excerpts the model gets.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/retrieval/bm25.py">retrieval/bm25.py</a></td><td><code>BM25Index</code> (stemming, stopwords, save/load) and <code>BM25Retriever</code>, which returns only chunks sharing a term with the query.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/retrieval/embed.py">retrieval/embed.py</a></td><td><code>SentenceTransformerEncoder</code> (Apple-GPU when available) and <code>EmbeddingCache</code> in SQLite; <code>embed_texts</code> encodes only what's missing.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/retrieval/dense.py">retrieval/dense.py</a></td><td><code>build_collection</code> (cosine distance, doc_id payload index) and <code>DenseRetriever</code>.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/retrieval/build.py">retrieval/build.py</a></td><td>Builds every index for every strategy and model, then runs smoke queries.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/configs/retrieval.yaml">configs/retrieval.yaml</a></td><td>BM25 parameters, the three embedding models and their query prefixes, the two rerankers.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>Keep BM25 even though embeddings are "smarter":</b> contracts repeat their own defined terms exactly ("Initial Term", "written notice"). Measured on the test questions, embeddings alone ranked the first relevant chunk <b>0.24 lower in MRR</b> than BM25 (Article VIII).</p>
+      <p><b>Local Qdrant, not a hosted vector database:</b> no account, no network and no cost, and it's the same API as the hosted version if the project ever scales.</p>
+      <div class="nums"><span class="num">BM25 index <b>12 MB</b></span><span class="num">vectors <b>566 MB</b></span><span class="num">cache <b>263 MB</b></span></div>
+    </div>
+  </div>
+</article>
+
+<div class="part-h" id="part-answer"><span class="label">Part two · on every question</span><h2>Answering a question</h2></div>
+
+<article class="art" id="a-search" data-toc="V|Searching">
+  <header class="art-head">
+    <span class="art-no">Article V</span>
+    <h2>Searching: scope, fuse, rerank</h2>
+    <p class="sum">One pipeline turns a question into the 8 excerpts the model will read. Every component can be switched on or off, and every intermediate ranking is saved.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <ol>
+        <li><b>Scope to one contract.</b> Questions are about a named contract, so search runs inside it. The contract's name is then replaced by "the agreement". Inside one contract the name only matches the title page, preamble and signature block, which would otherwise outrank the actual clause. This one line (<code>scoped_query</code>) raised MRR by <b>0.40</b>, the biggest single gain in the project.</li>
+        <li><b>Gather candidates.</b> BM25 and/or one embedding model each return their top 50.</li>
+        <li><b>Fuse</b> when both are on. Their scores live on different scales, so they can't simply be added. <b>Reciprocal Rank Fusion</b> ignores scores and adds <code>1 / (60 + rank)</code> from each list. <b>Weighted fusion</b> rescales each list to 0–1 and mixes them with a weight α, which was tuned on the dev questions only (usually 0.4 on the embeddings).</li>
+        <li><b>Rerank</b> (optional). A cross-encoder reads the question and each candidate <i>together</i>, which is more precise than comparing two separately computed vectors but far slower, so it only sees the shortlist. Two were tried: bge-reranker-base (278M) and MiniLM (22M).</li>
+        <li><b>Cut to the top 8.</b></li>
+      </ol>
+      <p>The result keeps every stage's ranked list and its latency (<code>RetrievalResult.stages</code>). That record is what lets failure analysis say "BM25 had it at rank 3; the reranker pushed it to 14".</p>
+    </div>
+    <figure class="fig" data-anim="fusion">
+      <div class="fig-top"><span class="label">Two rankings, fused</span><button class="replay" type="button">Replay</button></div>
+      <div class="seg-btns" role="group" aria-label="Ranking">
+        <button class="mini" type="button" data-rank="bm25" aria-pressed="true">BM25</button>
+        <button class="mini" type="button" data-rank="dense" aria-pressed="false">embeddings (bge-base)</button>
+        <button class="mini" type="button" data-rank="rrf" aria-pressed="false">RRF</button>
+        <button class="mini" type="button" data-rank="weighted" aria-pressed="false">weighted α 0.4</button>
+      </div>
+      <div class="flist" id="flist"></div>
+      <div class="note" id="fnote"></div>
+      <figcaption>The 12 chunks of the Kubient contract for q0078, with the real BM25 and bge-base scores. RRF and weighted fusion are computed here, live, with the pipeline's own formulas. <b>Teal</b> rows hold the clause.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/retrieval/pipeline.py">retrieval/pipeline.py</a></td><td><code>scoped_query</code>; <code>RetrievalPipeline</code> (candidates → fusion → rerank → top k, every stage recorded); <code>RetrievalResources</code> loads indexes and models lazily and shares them.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/retrieval/fusion.py">retrieval/fusion.py</a></td><td><code>reciprocal_rank_fusion</code> and <code>weighted_fusion</code> (min-max scaled).</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/retrieval/rerank.py">retrieval/rerank.py</a></td><td><code>CrossEncoderReranker</code> over the candidates.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/retrieval/config.py">retrieval/config.py</a></td><td>Index and model settings; one Qdrant collection name per (chunking, model).</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>The served setup has no fusion and no reranker.</b> On the test questions, adding embeddings to BM25 changed MRR by −0.02 (not significant). The bge reranker <i>lowered</i> it by 0.15 and costs about 1 s per question. Inside one contract (a median of 13 fixed chunks), plain BM25 already has the answer on its shortlist.</p>
+      <p><b>Everything kept switchable anyway:</b> on a larger corpus, or with questions across contracts, the balance could flip, and the switches let it be re-measured with one config change.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-answer" data-toc="VI|Answering">
+  <header class="art-head">
+    <span class="art-no">Article VI</span>
+    <h2>Answering, with a citation on every sentence</h2>
+    <p class="sum">A small open model, running on the laptop through Ollama, answers only from the numbered excerpts and has to say which excerpt each sentence came from, or that the contract doesn't say.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <p>The 8 excerpts are numbered <b>[1]…[8]</b> and labelled with their section and pages. The instructions are strict:</p>
+      <ol>
+        <li>Use only the excerpts; no outside knowledge.</li>
+        <li>End every sentence with the excerpt number(s) behind it, like [2] or [1][3].</li>
+        <li>Use the contract's exact wording for dates, amounts, notice periods and governing law.</li>
+        <li>If the excerpts don't contain the answer, set <code>"abstained": true</code> and don't guess.</li>
+        <li>Answer only what was asked, in at most 4 sentences.</li>
+      </ol>
+      <p>The reply must be JSON (<code>{"answer": …, "abstained": …}</code>), which Ollama enforces with a schema. Temperature is 0 and the seed fixed, so reruns give the same answer. Hidden "thinking" is turned off. The context window is raised to 8,192 tokens because the default is too small for 8 excerpts.</p>
+      <p>Afterwards, <code>parse_citations</code> maps each <b>[n]</b> back to a real chunk id and counts any number that points at no excerpt (a [9] when there were 8). Token counts and latency are logged on every call.</p>
+    </div>
+    <figure class="fig" data-anim="prompt">
+      <div class="fig-top"><span class="label">The prompt, then the answer</span><button class="replay" type="button">Replay</button></div>
+      <div class="prompt" id="promptBox"></div>
+      <div class="out" id="outBox"></div>
+      <div class="note" id="pnote"></div>
+      <figcaption>The real call for q0078 with <b>qwen3.5:4b</b> from the final run: the excerpts, the model's JSON, and what <b>[5]</b> points to.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/generation/prompts.py">generation/prompts.py</a></td><td><code>SYSTEM_PROMPT</code>, <code>format_context</code> (numbered excerpts with section and pages), <code>build_messages</code>, <code>ANSWER_SCHEMA</code>, <code>parse_citations</code>.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/generation/generator.py">generation/generator.py</a></td><td><code>GeneratorConfig</code> (model, temperature 0, 8k context, 400-token limit, thinking off); <code>OllamaGenerator</code>; <code>parse_output</code> with a fallback for invalid JSON.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>[1]…[8] instead of chunk ids:</b> small models copy a short number far more reliably than an id like <code>cuad_0042::section::00031</code>.</p>
+      <p><b>qwen3.5:4b:</b> open weights, small enough for a 24 GB laptop, and a different family from the grading model (Article IX), so the grader isn't marking its own family's work. The 2B size was also measured: it left the citations out of 52 of 70 answers.</p>
+    </div>
+  </div>
+</article>
+
+<div class="part-h" id="part-measure"><span class="label">Part three · the evaluation harness</span><h2>Measuring it</h2></div>
+
+<article class="art" id="a-exam" data-toc="VII|The exam">
+  <header class="art-head">
+    <span class="art-no">Article VII</span>
+    <h2>The exam: 100 questions and an answer key</h2>
+    <p class="sum">Before any model is judged, there has to be a fixed set of questions with known answers, and a precise rule for which chunks count as "the evidence".</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <h3>The questions</h3>
+      <p>100 questions are generated from the lawyers' highlights and the spreadsheet's reference answers, each about one named contract. There are four kinds:</p>
+      <ul>
+        <li><b>60 single-clause</b> questions ("Which state's law governs…?"),</li>
+        <li><b>15 multi-part</b> questions whose evidence sits in two far-apart places,</li>
+        <li><b>10 numeric</b> questions (amounts, caps, durations),</li>
+        <li><b>15 unanswerable</b> questions about a clause the contract doesn't have. These test whether the model admits it.</li>
+      </ul>
+      <p>Categories are drawn round-robin, so no clause type dominates, with at most 2 questions per contract. Contracts, not questions, are split into <b>30 dev / 70 test</b>, so no contract appears on both sides. Every setting is tuned on dev, and every reported number comes from test. All 100 were read by hand, and 6 whose highlight didn't actually support the question were swapped out, with the reasons recorded in <code>configs/eval.yaml</code>.</p>
+      <h3>The answer key</h3>
+      <p>A lawyer's highlight is a piece of text, and its offsets point into CUAD's own text file. The labeller finds the same text in <i>our</i> parse. First it tries an exact match after normalizing (lowercase, letters and digits only). If that fails it falls back to a fuzzy match (<code>rapidfuzz</code>, score ≥ 85). <b>100% of highlights were located</b> for all three chunkings.</p>
+      <p>A chunk is <b>relevant</b> if it overlaps the highlight by at least half of whichever of the two is smaller. That way a short sentence inside a long chunk counts, and so does a long highlight spread over several short chunks.</p>
+    </div>
+    <figure class="fig" data-anim="labels">
+      <div class="fig-top"><span class="label">Which chunks hold the evidence?</span><button class="replay" type="button">Replay</button></div>
+      <ol class="align-steps" id="alignSteps">
+        <li>Lawyer's highlight: <i>"Either Party may terminate this Agreement for any reason following the Initial Term upon ninety (90) days written notice…"</i></li>
+        <li>Normalized and searched for in our text: <b>exact match</b></li>
+        <li>Found at characters <b id="evAt"></b> of the parsed contract</li>
+      </ol>
+      <div class="lab" id="labRows"></div>
+      <div class="axis-note" id="labAxis"></div>
+      <figcaption>Real chunk offsets around the clause. The yellow band is the highlight. A bar turns <b>teal</b> when its overlap covers at least half of the smaller of the two, which is the relevance rule in <b>eval/labels.py</b>.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/eval/build_questions.py">eval/build_questions.py</a></td><td>Candidates per question type, the round-robin <code>select</code>, the contract-level <code>split_documents</code>, reviewed replacements, and a review sheet.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/eval/labels.py">eval/labels.py</a></td><td><code>DocText</code> (normalized text with a map back to offsets), exact-then-fuzzy alignment, <code>is_relevant</code> (the 50%-of-the-smaller rule), <code>alignment_report</code>.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/data/eval/questions.jsonl">data/eval/questions.jsonl</a></td><td>The committed exam: question, contract, type, category, reference answer, evidence, split.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>A committed exam, not questions made up on the fly:</b> every setup is compared on exactly the same 100, so a difference comes from the setup and not from the questions.</p>
+      <p><b>Split by contract:</b> tuning on one clause of a contract and testing on another clause of the same contract would leak information and flatter the results.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-ablation" data-toc="VIII|Measuring search">
+  <header class="art-head">
+    <span class="art-no">Article VIII</span>
+    <h2>Measuring search: 189 setups, picked on dev, reported on test</h2>
+    <p class="sum">Search can be scored without any language model, so the whole grid of combinations runs and every component has to earn its place with a number.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <h3>The scores</h3>
+      <ul>
+        <li><b>Evidence recall@k:</b> the share of highlighted pieces of evidence with a relevant chunk in the top k. It's the headline number at k = 8, which is what the model receives. The model needs each piece of evidence once, however many chunks it was split into.</li>
+        <li><b>MRR:</b> one over the rank of the first relevant chunk (1 if it's first, ½ if second…).</li>
+        <li><b>nDCG@10</b> and <b>context precision</b>, which reward relevant chunks near the top.</li>
+      </ul>
+      <p>Every mean comes with a <b>95% bootstrap interval</b>: the questions are resampled 2,000 times, and the mean is recomputed each time. Two setups are compared question by question (a <i>paired</i> difference). A difference is only called real when its interval excludes zero.</p>
+      <h3>The grid</h3>
+      <p>3 chunkings × {BM25, 3 embedding models, both fused by RRF or weighted} × {no reranker, 2 rerankers} × {inside the contract, across all 100}, plus variants that keep the contract name in the query. That's <b>189 setups, scored in 16 minutes</b>. Identical searches and reranker scores are computed once and reused, and latency is only timed on uncached calls. Setups that tie on every dev question are folded into one, so a tie can't take two of the slots.</p>
+    </div>
+    <figure class="fig" data-anim="grid">
+      <div class="fig-top"><span class="label">Every setup, by test recall@8</span><button class="replay" type="button">Replay</button></div>
+      <div class="hm" id="heat"></div>
+      <div class="axis-note"><span>recall@8 0</span><span id="heatCount"></span><span>1.0</span></div>
+      <div class="label" style="margin:18px 0 8px">What each component changes (fixed chunks, test MRR, 95% CI)</div>
+      <div class="ci" id="deltas"></div>
+      <figcaption>Squares: all 189 configurations from <b>runs/ablation-v1</b>, darker = higher recall. Outlined: the setup chosen on dev and served (fixed · BM25 · inside the contract: recall@8 0.85, MRR 0.73). Hover a square for its name.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/eval/retrieval_metrics.py">eval/retrieval_metrics.py</a></td><td>The only place recall is computed: recall@k, MRR, nDCG, context precision, <code>bootstrap_ci</code>, <code>paired_difference</code>.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/eval/ablation.py">eval/ablation.py</a></td><td>Builds the grid, <code>CachedRetriever</code> and <code>CachingScorer</code>, per-component latency, dev selection with tie folding, the report.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/ablations.md">docs/ablations.md</a></td><td>The full result tables.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>Pick on dev, report on test:</b> choosing the best of 189 on the same questions it's scored on would overstate it. Picking on 26 dev questions and reporting on 59 unseen ones keeps the number honest.</p>
+      <p><b>Intervals on everything:</b> with 59 questions, a 0.03 gap is often noise. Most "improvements" here turned out not to be real.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-grade" data-toc="IX|Grading answers">
+  <header class="art-head">
+    <span class="art-no">Article IX</span>
+    <h2>Grading answers, one statement at a time</h2>
+    <p class="sum">A second, larger open model grades every answer. It never sees the whole context at once: each statement is checked only against the excerpts that statement cites.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <p>The grader is <b>gemma4:12b</b>, from a different model family than the one answering, so it isn't grading its own family's writing. Its work is split so each step is small and checkable:</p>
+      <ol>
+        <li><b>Split in code.</b> The answer is cut into statements, each one taking the citation numbers that follow it. "A within 30 days [3], B within a reasonable time [4]" becomes two statements.</li>
+        <li><b>Check each statement against only its own excerpts.</b> The grader answers two questions: is every fact stated in, or directly implied by, those excerpts? Is it on topic? A statement can't be "supported" by an excerpt it didn't cite.</li>
+        <li><b>Check numbers in code.</b> Every figure in a statement (days, amounts, dates, section numbers) has to appear in its cited excerpts, as digits or as words. A number that isn't there makes the statement unsupported.</li>
+        <li><b>Grade correctness</b> in a separate call, against the lawyer-derived reference and the highlighted clause: <i>correct</i> = 1, <i>partial</i> = ½, <i>incorrect</i> = 0.</li>
+      </ol>
+      <p>From these come <b>faithfulness</b> (the share of statements supported), <b>citation validity</b> (the share of citation numbers that point at a real excerpt), <b>relevance</b> (the share on topic), <b>correctness</b>, and, for the unanswerable questions, <b>abstention accuracy</b>: did it decline, by its flag or by saying so in its first sentence?</p>
+      <h3>Can the grader be trusted?</h3>
+      <p>Only after it was checked. 30 dev questions were answered from a controlled context (the evidence blocks plus 3 distractors, so search is out of the loop). The grader's verdicts were then compared with 24 reference labels written blind. Agreement is reported as <b>Cohen's κ</b>, which discounts the agreement two raters would reach by chance. The correctness rubric went through versions. The one in use, <i>contradiction-only v5</i>, reached <b>κ 0.60</b> (83% agreement). A "list the key facts" rubric that looked more rigorous only reached κ 0.18, and was rejected.</p>
+    </div>
+    <figure class="fig" data-anim="judge">
+      <div class="fig-top"><span class="label">A real answer, graded</span><button class="replay" type="button">Replay</button></div>
+      <div class="jq" id="jq"></div>
+      <div class="stmts" id="stmts"></div>
+      <div class="jscores" id="jscores"></div>
+      <div class="label" style="margin:16px 0 8px">Grader agreement with reference labels (κ)</div>
+      <div class="hbars" id="kappa"></div>
+      <figcaption>Question q0031 from the final run. The answer is <b>correct</b>, but its first sentence cites the preamble excerpt, which doesn't contain that rule, so it's only <b>half faithful</b>. That's why faithfulness and correctness are scored separately.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/eval/judge.py">eval/judge.py</a></td><td><code>split_statements</code>, <code>OllamaJudge</code> (statement check + grade), <code>unsupported_numbers</code>, <code>statement_check</code>, <code>faithfulness_score</code>, <code>citation_validity</code>, <code>declines</code>, <code>score_answer</code>; the rubric is <code>RUBRIC</code>.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/eval/calibration.py">eval/calibration.py</a></td><td>Controlled-context answers (<code>oracle_chunks</code>) and a blind labelling sheet with no grader output on it.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/eval/agreement.py">eval/agreement.py</a></td><td><code>cohen_kappa</code>, percent agreement, and the mapping from scores to labels.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>Statement by statement, not "rate this answer 1–10":</b> a single score hides <i>which</i> sentence is wrong. Per-statement checks against the cited excerpt catch a right fact with the wrong citation, as in the example.</p>
+      <p><b>Numbers checked in code:</b> small graders let a changed figure slide ("60 days" for "90 days"). A string check doesn't.</p>
+      <p><b>Report the agreement:</b> a 12B grader is noisy, so its κ is published next to every score. The scores are best used to compare setups, not as absolute truth.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-run" data-toc="X|The full run">
+  <header class="art-head">
+    <span class="art-no">Article X</span>
+    <h2>The full run: 8 setups × 70 questions = 560 graded answers</h2>
+    <p class="sum">The best search setups from Article VIII are run end to end, search → answer → grade, on every test question, on a 24 GB laptop.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <p>The run takes the top 4 dev picks, the best setup for each chunking, and a BM25-only baseline for each chunking: 8 setups in all. A laptop can't hold the 4B answering model and the 12B grader at once, so the run goes in <b>three phases</b>, with one model in memory per phase:</p>
+      <ol>
+        <li><b>Search</b> for all 8 setups × 70 questions.</li>
+        <li><b>Answer</b> with qwen3.5:4b. When two setups hand the model the same excerpts for a question, the answer is reused rather than regenerated.</li>
+        <li><b>Grade</b> with gemma4:12b. Identical answer-plus-excerpts pairs are graded once.</li>
+      </ol>
+      <p>Every result is appended to disk as it's produced, so a crash resumes where it stopped. The model server is told to unload every 10 calls, because Ollama's memory grows by gigabytes over hundreds of requests. A <b>re-grade mode</b> copies an earlier run's searches and answers, reuses its statement verdicts, and only regrades correctness. That's how the fixed grader was applied to the same 560 answers without changing any of them.</p>
+      <p><b>What came out:</b> correctness ranges from 0.65 to 0.75, and the plain BM25 setup is at the top. Nothing beat it on correctness by a significant margin. Smaller chunks (section, sentence window) give far more faithful answers, 0.83–0.87 against 0.62, because each excerpt holds one provision instead of several.</p>
+    </div>
+    <figure class="fig" data-anim="matrix">
+      <div class="fig-top"><span class="label">Correctness by setup (test, 95% CI)</span><button class="replay" type="button">Replay</button></div>
+      <div class="phases" id="phases"></div>
+      <div class="ci" id="matrixBars"></div>
+      <div class="legend"><span><i style="background:var(--mach)"></i>correctness, with 95% interval</span><span><i style="background:var(--pen);border-radius:50%"></i>faithfulness</span></div>
+      <figcaption>From <b>runs/matrix-v3</b> (docs/answer_quality.md): generator qwen3.5:4b, grader gemma4:12b, rubric contradiction-only v5.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/eval/run_matrix.py">eval/run_matrix.py</a></td><td><code>choose_configs</code> / <code>configs_to_run</code>, the three phases in <code>run</code>, answer and verdict reuse, <code>_unload</code>, the report with paired differences against the baseline.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/configs/matrix.yaml">configs/matrix.yaml</a></td><td>Which setups, which models, bootstrap size, how often to unload.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/answer_quality.md">docs/answer_quality.md</a></td><td>The final table.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>Only 8 setups get answers:</b> search scores are free, but answering and grading cost about 30 s per question on a laptop. The expensive stage only runs on setups that already won the cheap one, plus baselines to compare against.</p>
+      <p><b>Reuse, don't recompute:</b> many setups hand the model identical excerpts. Reusing those answers made the run affordable and makes the comparison fairer, because the same input gets the same answer.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-fail" data-toc="XI|Why answers fail">
+  <header class="art-head">
+    <span class="art-no">Article XI</span>
+    <h2>Why answers fail, and where</h2>
+    <p class="sum">Every answer that wasn't fully correct is traced back through the saved pipeline data to the first stage that went wrong. 20 of them were also read by hand.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <p>Because every stage's output was saved, each failure can be walked through in order. The first check that fails names it:</p>
+      <ol>
+        <li>Is the evidence inside some chunk at all? If not: <b>lost in chunking</b>.</li>
+        <li>Did BM25 or the embeddings rank a chunk that holds it? If not: <b>retrieval miss</b>.</li>
+        <li>Did any of it reach the model? If not: <b>ranking miss</b>, or <b>reranker demotion</b> if the reranker pushed it out.</li>
+        <li>Did <i>all</i> of it reach the model? If not: <b>partial evidence</b>.</li>
+        <li>Did the model answer? If not: <b>refused with evidence</b>.</li>
+        <li>Is every statement supported? If not: <b>unsupported claims</b>; if they are all supported but the answer is still wrong: <b>misread evidence</b>.</li>
+      </ol>
+      <p>Unanswerable questions the model answered anyway are <b>answered unanswerable</b>.</p>
+      <p>The hand review found that <b>the first grader was part of the problem</b>. 58% of its non-correct grades faulted details "not in the clause" that were true elsewhere in the contract. Its abstention score mostly read a JSON flag, while the answer text said "the contract doesn't say". Fixing both and regrading the same answers cut failures from <b>282 to 185</b> and raised mean correctness from <b>0.59 to 0.71</b>, without changing a single answer.</p>
+      <p>With grading fixed, <b>62% of the remaining failures happen before the model sees the evidence</b>. The main causes: multi-part questions, where one half dominates the search, and vocabulary gaps ("restrict from competing" against "shall not enter into an agreement with Futurestep").</p>
+    </div>
+    <figure class="fig" data-anim="triage">
+      <div class="fig-top"><span class="label">A failed answer, traced</span><button class="replay" type="button">Replay</button></div>
+      <div class="tcase" id="tcase"></div>
+      <div class="gates" id="gates"></div>
+      <div class="label" style="margin:16px 0 8px">All failures by first failing stage</div>
+      <div class="hbars" id="failBars"></div>
+      <div class="legend"><span><i style="background:var(--mach)"></i>retrieval</span><span><i style="background:var(--pen)"></i>generation</span><span><i style="background:var(--line)"></i>first grading</span></div>
+      <figcaption>Cases q0036, q0089 and q0074 from the hand review (<b>data/eval/failure_review.jsonl</b>); counts from <b>runs/failure-analysis-v3</b>, with the first grading as ghost bars.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/analysis/failures.py">analysis/failures.py</a></td><td><code>trace_spans</code> (where each piece of evidence got to), <code>categorize</code>, <code>triage_row</code>, <code>checks</code> (tests the hand-review patterns on all 560 rows), the report.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/failure_taxonomy.md">docs/failure_taxonomy.md</a></td><td>The taxonomy, 20 hand-read cases, root causes and fixes.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/data/eval/failure_review.jsonl">data/eval/failure_review.jsonl</a></td><td>The hand labels.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>Trace, don't guess:</b> "the model is dumb" and "search missed it" need opposite fixes. Saving every stage's ranking made the answer a lookup instead of an argument.</p>
+      <p><b>Doubt the grader too:</b> the biggest single improvement in this project changed no model and no search. It fixed how answers were scored.</p>
+    </div>
+  </div>
+</article>
+
+<div class="part-h" id="part-serve"><span class="label">Part four · online</span><h2>Serving it</h2></div>
+
+<article class="art" id="a-serve" data-toc="XII|The service">
+  <header class="art-head">
+    <span class="art-no">Article XII</span>
+    <h2>The service: an API, a page, and one container</h2>
+    <p class="sum">The winning setup from the experiments is wrapped in a small web service with a key, logs and timings, packed into a Docker image and run on a free Hugging Face Space.</p>
+  </header>
+  <div class="art-body">
+    <div class="prose">
+      <h3>The API</h3>
+      <p><code>QAService</code> loads the parsed contracts, their fixed chunks and the BM25 index once at start-up. For each question it runs the served pipeline (fixed chunks, BM25, inside the chosen contract, top 8), asks the model, and returns the answer with every citation expanded: page, section and the excerpt's text. A lock makes sure only one question uses the model at a time.</p>
+      <ul>
+        <li><code>GET /health</code> is open; <code>GET /contracts</code> and <code>POST /ask</code> need an <code>X-API-Key</code> header, compared in constant time.</li>
+        <li>Every response carries an <code>X-Request-ID</code>, and every request writes one JSON log line: status, time, contract, whether the model declined, citations, tokens, and the search/answer split.</li>
+        <li>Errors say what happened: 404 for an unknown contract, 422 for a question that's too long, 502 when the model server fails.</li>
+        <li>The server refuses to start without a key unless explicitly run with <code>--no-auth</code>.</li>
+      </ul>
+      <p>A small <b>Streamlit</b> page lets anyone pick a contract, ask, and open each citation.</p>
+      <h3>The container</h3>
+      <p>The image installs only what the API imports: no PyTorch, because the served setup never embeds. It bakes in the 13 MB of data it needs, runs as an unprivileged user, and has a health check. On the Space, the same image also carries <b>Ollama with qwen3.5:4b</b>, with <b>nginx</b> in front: <code>/</code> is the page and <code>/api/</code> is the API.</p>
+      <h3>Choosing the model for a free CPU</h3>
+      <p>The free Space has 2 CPU cores and no GPU. On 2 cores the 4B model takes about 2½ minutes per answer, almost all of it reading the ~4,500-token prompt. The smaller Qwen sizes are faster, so they were measured on the same 70 test questions with the same grader. They answer faster but mostly stop citing, and citations are the point of the project. So the Space runs the 4B that every result on this page was measured with, and asks for patience.</p>
+    </div>
+    <figure class="fig" data-anim="serve">
+      <div class="fig-top"><span class="label">One request, end to end</span><button class="replay" type="button">Replay</button></div>
+      <div class="seq" id="seq"></div>
+      <pre class="logline" id="logline"></pre>
+      <div class="label" style="margin:16px 0 8px">Seconds per answer on 2 CPU threads (lower is faster)</div>
+      <div class="hbars" id="speedBars"></div>
+      <div class="label" style="margin:16px 0 8px">Same test set, same grader: which model keeps its citations?</div>
+      <div class="sizes" id="sizes"></div>
+      <figcaption>Request timings from the live check on the laptop (Apple GPU). CPU timings: one real question, CPU only, 2 threads on an M4 Pro. Model scores: <b>runs/matrix-v3</b> (4B) and <b>runs/matrix-deploy-*</b> (2B, 0.8B), on the served setup.</figcaption>
+    </figure>
+  </div>
+  <div class="art-foot">
+    <div class="files"><span class="label">Files</span><table>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/api/service.py">api/service.py</a></td><td><code>QAService</code>, <code>AskResponse</code> and <code>Citation</code>, <code>display_title</code> (turns CUAD file names into readable titles).</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/api/app.py">api/app.py</a></td><td><code>create_app</code>: routes, the key check, request ids, one JSON log line per request, error mapping.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/src/contract_rag/api/main.py">api/main.py</a></td><td>Starts uvicorn; refuses to run without <code>APP_API_KEY</code>; <code>--root-path</code> for a proxy prefix.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/ui/streamlit_app.py">ui/streamlit_app.py</a></td><td>The page: contract picker, question box, expandable citations, timings.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/blob/main/Dockerfile">Dockerfile</a></td><td>The API image (610 MB); data staged by <code>scripts/stage_image.py</code>.</td></tr>
+      <tr><td><a href="https://github.com/mazenDDr/Contract-rag/tree/main/deploy/space">deploy/space/</a></td><td>The Space image (Ollama + model + API + page + nginx), assembled and uploaded by <code>scripts/push_space.py</code>.</td></tr>
+    </table></div>
+    <div class="why"><span class="hand">why this, not that</span>
+      <p><b>A Hugging Face Space:</b> the free tier has 16 GB of memory, enough for a 4B model on CPU. The other free hosts are too small to hold a model at all.</p>
+      <p><b>The slow 4B, not a fast 2B:</b> measured on the same test, the 2B's correctness fell from 0.75 to 0.53 and its citation validity from 0.87 to 0.14. A fast answer without its source isn't what this project promises.</p>
+      <p><b>No paid API anywhere:</b> every model in the project is open-weight and runs locally, which was a rule from the first day.</p>
+    </div>
+  </div>
+</article>
+
+<article class="art" id="a-run-it" data-toc="A|Run it yourself">
+  <header class="art-head">
+    <span class="art-no">Appendix A</span>
+    <h2>Run it yourself</h2>
+    <p class="sum">Every number on this page can be rebuilt from a clean checkout with these commands, in this order. Each one reads its settings from <code>configs/</code> and writes to <code>data/</code>, <code>indexes/</code> or <code>runs/</code>.</p>
+  </header>
+  <div class="codeblock"><pre><code><span class="c"># once: Python 3.11, the package, and the two local models</span>
+make setup
+ollama pull qwen3.5:4b &amp;&amp; ollama pull gemma4:12b
+export PYTHONPATH=src
+
+<span class="c"># build the library (Articles I–IV)</span>
+.venv/bin/python scripts/download_cuad.py      <span class="c"># CUAD → manifests, 100-contract subset, test fixture</span>
+.venv/bin/python scripts/parse_cuad.py         <span class="c"># PDFs → documents.jsonl + blocks.jsonl</span>
+.venv/bin/python scripts/chunk_cuad.py         <span class="c"># blocks → three chunk files</span>
+.venv/bin/python scripts/build_indexes.py      <span class="c"># BM25 + vectors (embeddings cached)</span>
+
+<span class="c"># measure (Articles VII–XI)</span>
+.venv/bin/python scripts/build_questions.py    <span class="c"># the 100-question exam</span>
+.venv/bin/python scripts/run_ablation.py       <span class="c"># 189 search setups → docs/ablations.md</span>
+.venv/bin/python scripts/judge_calibration.py  <span class="c"># grader vs reference labels (then --agreement)</span>
+.venv/bin/python scripts/run_matrix.py --config configs/matrix.yaml --run-dir runs/matrix-v1
+.venv/bin/python scripts/run_matrix.py --config configs/matrix-regrade.yaml --run-dir runs/matrix-v3
+.venv/bin/python scripts/analyze_failures.py --run-dir runs/matrix-v3 --out runs/failure-analysis-v3
+
+<span class="c"># serve (Article XII)</span>
+APP_API_KEY=choose-a-key .venv/bin/python scripts/serve_api.py
+API_URL=http://127.0.0.1:8000 APP_API_KEY=choose-a-key streamlit run ui/streamlit_app.py
+
+<span class="c"># quality gates: lint + 94 tests on a 3-contract fixture, no network, no models</span>
+make check</code></pre></div>
+</article>
+
+<article class="art" id="a-tree" data-toc="B|Repository map">
+  <header class="art-head">
+    <span class="art-no">Appendix B</span>
+    <h2>Repository map</h2>
+    <p class="sum">Every source file, with its size in lines. Click one to open it on GitHub.</p>
+  </header>
+  <div class="tree" id="tree"></div>
+</article>
+
+<article class="art" id="a-terms" data-toc="C|Glossary">
+  <header class="art-head">
+    <span class="art-no">Appendix C</span>
+    <h2>Glossary</h2>
+  </header>
+  <dl class="gloss">
+    <div><dt>RAG (retrieval-augmented generation)</dt><dd>Find the relevant passages first, then have a language model answer from them, instead of from memory.</dd></div>
+    <div><dt>Chunk</dt><dd>A piece of a contract that search can return. Its id is what an answer cites.</dd></div>
+    <div><dt>BM25</dt><dd>Keyword ranking: rare shared words count most, long chunks get no free advantage.</dd></div>
+    <div><dt>Stemming</dt><dd>Cutting words to a common root ("notice", "noticed" → <code>notic</code>) so they match.</dd></div>
+    <div><dt>Embedding / dense retrieval</dt><dd>Text turned into a vector so that similar meanings are close together; search by nearest vectors.</dd></div>
+    <div><dt>Qdrant</dt><dd>The vector database, run locally from a folder.</dd></div>
+    <div><dt>RRF (reciprocal rank fusion)</dt><dd>Merge rankings by adding <code>1 / (60 + rank)</code> from each; ignores raw scores.</dd></div>
+    <div><dt>Cross-encoder reranker</dt><dd>A model that reads question and passage together to rescore a shortlist. More precise, much slower.</dd></div>
+    <div><dt>Recall@k (evidence recall)</dt><dd>Share of the highlighted evidence that has a relevant chunk in the top k results.</dd></div>
+    <div><dt>MRR</dt><dd>Mean of 1 / rank of the first relevant chunk. 1.0 means it's always first.</dd></div>
+    <div><dt>nDCG@10</dt><dd>A score for the whole top 10 that rewards relevant chunks nearer the top.</dd></div>
+    <div><dt>Dev / test split</dt><dd>Tune on dev, report on test, never the other way round, so results aren't flattered.</dd></div>
+    <div><dt>Bootstrap interval</dt><dd>Resample the questions 2,000 times to see how much a mean could move; the 95% range is reported.</dd></div>
+    <div><dt>Paired difference</dt><dd>Compare two setups question by question; "significant" means the interval excludes zero.</dd></div>
+    <div><dt>Abstention</dt><dd>The model saying the contract doesn't answer the question, instead of guessing.</dd></div>
+    <div><dt>Faithfulness</dt><dd>Share of an answer's statements supported by the excerpts they cite.</dd></div>
+    <div><dt>Citation validity</dt><dd>Share of citation numbers that point at an excerpt that was actually provided.</dd></div>
+    <div><dt>Correctness</dt><dd>Agreement with the lawyer-derived reference: correct 1, partial ½, incorrect 0.</dd></div>
+    <div><dt>LLM-as-judge</dt><dd>Using a language model to grade another's answers; trusted only after checking it against labels.</dd></div>
+    <div><dt>Cohen's κ</dt><dd>Agreement between two raters beyond what chance would give. 0.6 is "moderate to substantial".</dd></div>
+    <div><dt>Ollama</dt><dd>Local server that runs open-weight models on the laptop (or a CPU container).</dd></div>
+    <div><dt>Ablation</dt><dd>Switching components on and off one at a time to measure what each contributes.</dd></div>
+  </dl>
+</article>
+  </main>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <span>contract-rag · built with local, open-weight models; no paid APIs · data: CUAD v1 (CC BY 4.0)</span>
+    <span><a href="tour/">The one-page tour</a> · <a href="https://github.com/mazenDDr/Contract-rag">Code</a> · <a href="https://huggingface.co/spaces/mazenDDr/contract-rag">Live demo</a></span>
+  </div>
+</footer>
+
+<script>
+const STORY = /*__STORY__*/null;
+const GRID = /*__GRID__*/null;
+const JUDGED = /*__JUDGED__*/null;
+const PROMPT = /*__PROMPT__*/null;
+const GH = "https://github.com/mazenDDr/Contract-rag/blob/main/";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const h = (tag, attrs = {}, html = "") => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (html) e.innerHTML = html; return e; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const fmt = (x, d = 2) => Number(x).toFixed(d);
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- theme ---------- */
+(() => {
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("cr-theme"); if (t) root.dataset.theme = t; } catch (e) {}
+  $("#themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("cr-theme", root.dataset.theme); } catch (e) {}
+  });
+})();
+
+/* ---------- the map ---------- */
+const COL = [24, 180, 336, 492, 648, 804, 960], W = 128, H = 58;
+const LANES = [
+  {y: 22, h: 132, t: "BUILD THE LIBRARY · ONCE, OFFLINE"},
+  {y: 174, h: 142, t: "ANSWER A QUESTION · EVERY REQUEST"},
+  {y: 336, h: 190, t: "MEASURE IT · THE EVALUATION HARNESS"},
+  {y: 546, h: 96, t: "SERVE IT"},
+];
+const NODES = {
+  a1: {c: 0, y: 64, t: "Download", f: "ingest/download.py", art: "a-corpus",
+    what: "Fetches CUAD v1 (510 contracts), checks its MD5, reconciles PDFs, text and the lawyers' spreadsheet into one manifest, and picks the 100-contract working set by contract type.",
+    in: "CUAD_v1.zip from Zenodo", out: "cuad_manifest.jsonl (510) · dev_manifest.jsonl (100) · tests/fixtures/cuad_mini (3)",
+    fns: ["download_archive", "extract_archive", "build_manifest", "stratified_subset", "build_fixture"], files: ["src/contract_rag/ingest/download.py", "configs/ingest.yaml"]},
+  a2: {c: 1, y: 64, t: "Parse PDFs", f: "ingest/parse_pdf.py", art: "a-parse",
+    what: "Reads each page with PyMuPDF, classifies blocks as heading / paragraph / list / table, drops repeated headers and footers, and records page, section path and exact character offsets.",
+    in: "100 PDFs, 1,580 pages", out: "documents.jsonl (Document) · blocks.jsonl (17,516 Block)",
+    fns: ["parse_pdf", "_repeated_margin_keys", "_numbered_heading", "_looks_like_visual_heading", "table_to_markdown", "parse_manifest"], files: ["src/contract_rag/ingest/parse_pdf.py", "src/contract_rag/ingest/normalize.py", "configs/parse_pdf.yaml"]},
+  a3: {c: 2, y: 64, t: "Chunk ×3", f: "chunking/", art: "a-chunk",
+    what: "Cuts every document three ways: fixed 512-token windows with 64 overlap, sections split at headings, and single sentences shown with ±3 sentences of context.",
+    in: "documents + blocks", out: "chunks/fixed.jsonl (2,166) · section.jsonl (5,578) · sentence_window.jsonl (20,898)",
+    fns: ["FixedChunker", "SectionChunker", "SentenceWindowChunker", "BaseChunker.token_windows", "run_chunking"], files: ["src/contract_rag/chunking/fixed.py", "src/contract_rag/chunking/section.py", "src/contract_rag/chunking/sentence_window.py", "src/contract_rag/chunking/base.py", "src/contract_rag/chunking/run.py"]},
+  a4: {c: 3, y: 64, t: "Index", f: "retrieval/build.py", art: "a-index",
+    what: "Builds a BM25 keyword index per chunking and a Qdrant vector collection per chunking × embedding model, with every vector cached by (model, text hash).",
+    in: "the three chunk files", out: "indexes/bm25 (12 MB) · indexes/qdrant (566 MB) · embeddings.sqlite (263 MB)",
+    fns: ["BM25Index", "EmbeddingCache", "embed_texts", "build_collection", "build_all"], files: ["src/contract_rag/retrieval/bm25.py", "src/contract_rag/retrieval/embed.py", "src/contract_rag/retrieval/dense.py", "src/contract_rag/retrieval/build.py"]},
+  a5: {c: 5, y: 64, t: "Shared shapes", f: "schemas.py", art: "a-corpus",
+    what: "The data contracts every arrow on this map carries. Each stage reads and writes these pydantic models, so stages can be swapped and tested on their own.",
+    in: "—", out: "Document → Block → Chunk → RetrievalResult → GenerationResult → EvalScores",
+    fns: ["Document", "Block", "Chunk", "EvalQuestion", "RetrievalConfig", "RetrievalResult", "GenerationResult", "EvalScores", "Retriever"], files: ["src/contract_rag/schemas.py"]},
+  b1: {c: 0, y: 214, t: "Question", f: "+ which contract", art: "a-search",
+    what: "A question about one named contract, from a user of the API or from the 100-question exam.",
+    in: "text + doc_id", out: "to the pipeline", fns: ["AskRequest", "EvalQuestion"], files: ["src/contract_rag/api/app.py", "data/eval/questions.jsonl"]},
+  b2: {c: 1, y: 214, t: "Scope", f: "scoped_query", art: "a-search",
+    what: "Search stays inside the chosen contract, and the contract's name is replaced by \"the agreement\" so the title page stops outranking the clause. MRR +0.40.",
+    in: "question, contract name", out: "the search query", fns: ["scoped_query"], files: ["src/contract_rag/retrieval/pipeline.py"]},
+  b3: {c: 2, y: 214, t: "Search", f: "bm25 · dense", art: "a-index",
+    what: "BM25 and/or an embedding model each return their top 50 chunks of that contract.",
+    in: "query + indexes", out: "ranked candidate lists", fns: ["BM25Retriever.retrieve", "DenseRetriever.retrieve"], files: ["src/contract_rag/retrieval/bm25.py", "src/contract_rag/retrieval/dense.py"]},
+  b4: {c: 3, y: 214, t: "Fuse · rerank", f: "fusion.py · rerank.py", art: "a-search",
+    what: "Merges two rankings (RRF or weighted), optionally rescores the shortlist with a cross-encoder, and keeps the top 8. Every stage's list is saved.",
+    in: "candidate lists", out: "RetrievalResult (final top 8 + every stage)", fns: ["reciprocal_rank_fusion", "weighted_fusion", "CrossEncoderReranker", "RetrievalPipeline.run"], files: ["src/contract_rag/retrieval/fusion.py", "src/contract_rag/retrieval/rerank.py", "src/contract_rag/retrieval/pipeline.py"]},
+  b5: {c: 4, y: 214, t: "Prompt", f: "generation/prompts.py", art: "a-answer",
+    what: "Numbers the 8 excerpts [1]..[8] with section and pages, and adds strict rules: excerpts only, cite every sentence, abstain if absent, answer as JSON.",
+    in: "question + 8 chunks", out: "chat messages + JSON schema", fns: ["SYSTEM_PROMPT", "format_context", "build_messages", "ANSWER_SCHEMA"], files: ["src/contract_rag/generation/prompts.py"]},
+  b6: {c: 5, y: 214, t: "Generate", f: "qwen3.5:4b · Ollama", art: "a-answer",
+    what: "The local open model answers at temperature 0 with thinking off; tokens and latency are logged.",
+    in: "messages", out: "raw JSON answer", fns: ["OllamaGenerator.generate", "GeneratorConfig"], files: ["src/contract_rag/generation/generator.py"]},
+  b7: {c: 6, y: 214, t: "Answer", f: "+ citations", art: "a-answer",
+    what: "Parses the JSON, maps each [n] back to a chunk id, counts citations that point nowhere, and flags abstentions.",
+    in: "raw answer", out: "GenerationResult", fns: ["parse_output", "parse_citations", "cited_numbers"], files: ["src/contract_rag/generation/generator.py", "src/contract_rag/generation/prompts.py"]},
+  c1: {c: 0, y: 374, t: "Questions", f: "build_questions.py", art: "a-exam",
+    what: "100 questions from lawyers' highlights, four types, split by contract into 30 dev / 70 test, hand-reviewed.",
+    in: "CUAD annotations + master_clauses.csv", out: "data/eval/questions.jsonl", fns: ["derived_candidates", "multi_candidates", "unanswerable_candidates", "select", "split_documents"], files: ["src/contract_rag/eval/build_questions.py", "configs/eval.yaml"]},
+  c2: {c: 1, y: 374, t: "Answer key", f: "eval/labels.py", art: "a-exam",
+    what: "Finds each highlight in our parsed text (exact, then fuzzy ≥ 85) and marks the chunks that overlap it by at least half of the smaller of the two.",
+    in: "evidence spans + chunks", out: "relevant chunk ids per question", fns: ["DocText", "label_question", "is_relevant", "alignment_report"], files: ["src/contract_rag/eval/labels.py"]},
+  c3: {c: 2, y: 374, t: "Search scores", f: "retrieval_metrics.py", art: "a-ablation",
+    what: "The only place recall is computed: recall@k, MRR, nDCG, context precision, bootstrap intervals and paired differences.",
+    in: "rankings + answer key", out: "per-question scores", fns: ["evidence_recall_at_k", "reciprocal_rank", "ndcg_at_k", "bootstrap_ci", "paired_difference"], files: ["src/contract_rag/eval/retrieval_metrics.py"]},
+  c4: {c: 3, y: 374, t: "Ablation", f: "eval/ablation.py", art: "a-ablation",
+    what: "Scores all 189 search setups with caching, picks the best on dev, reports them on test.",
+    in: "grid of RetrievalConfigs", out: "runs/ablation-v1 · docs/ablations.md", fns: ["build_grid", "CachedRetriever", "CachingScorer", "summarize"], files: ["src/contract_rag/eval/ablation.py", "configs/ablation.yaml"]},
+  c5: {c: 4, y: 374, t: "Matrix run", f: "eval/run_matrix.py", art: "a-run",
+    what: "Search → answer → grade for 8 setups × 70 test questions, one model in memory per phase, reusing identical answers and verdicts, resumable.",
+    in: "chosen setups", out: "runs/matrix-v3 · docs/answer_quality.md", fns: ["configs_to_run", "run", "_unload", "summarize"], files: ["src/contract_rag/eval/run_matrix.py", "configs/matrix.yaml"]},
+  c6: {c: 5, y: 374, t: "Judge", f: "eval/judge.py", art: "a-grade",
+    what: "gemma4:12b checks each statement against only its cited excerpts, code checks the numbers, and a second call grades correctness.",
+    in: "answer + excerpts + reference", out: "faithfulness, citation validity, relevance, correctness, abstention", fns: ["split_statements", "statement_check", "unsupported_numbers", "declines", "score_answer"], files: ["src/contract_rag/eval/judge.py"]},
+  c8: {c: 5, y: 458, t: "Calibration", f: "calibration.py", art: "a-grade", hh: 48,
+    what: "Checks the grader against 24 reference labels on controlled-context answers. Correctness κ 0.60, faithfulness κ 0.57.",
+    in: "30 dev answers + labels", out: "runs/judge-calibration-v5", fns: ["oracle_chunks", "cohen_kappa", "agreement_report"], files: ["src/contract_rag/eval/calibration.py", "src/contract_rag/eval/agreement.py"]},
+  c7: {c: 6, y: 374, t: "Failure triage", f: "analysis/failures.py", art: "a-fail",
+    what: "Traces each failed answer to the first stage that went wrong; 20 cases read by hand. 185 failures, 62% before the model saw the evidence.",
+    in: "a matrix run", out: "runs/failure-analysis-v3 · docs/failure_taxonomy.md", fns: ["trace_spans", "categorize", "triage_row", "checks"], files: ["src/contract_rag/analysis/failures.py"]},
+  d1: {c: 2, y: 572, t: "QA service", f: "api/service.py", art: "a-serve",
+    what: "Loads the served setup once; per question: search, answer, and citations with page, section and text. One question at a time.",
+    in: "doc_id + question", out: "AskResponse", fns: ["QAService.ask", "display_title", "cited_numbers"], files: ["src/contract_rag/api/service.py"]},
+  d2: {c: 3, y: 572, t: "HTTP API", f: "api/app.py", art: "a-serve",
+    what: "FastAPI: /health, /contracts, /ask with an API key, request ids, one JSON log line per request, clear errors.",
+    in: "HTTP", out: "JSON", fns: ["create_app", "require_key", "request_log"], files: ["src/contract_rag/api/app.py", "src/contract_rag/api/main.py"]},
+  d3: {c: 4, y: 572, t: "Docker image", f: "Dockerfile", art: "a-serve",
+    what: "Slim image with only the API's dependencies and 13 MB of baked-in data; unprivileged user, health check.",
+    in: "code + staged data", out: "contract-rag-api (610 MB)", fns: ["stage_image.py"], files: ["Dockerfile", "scripts/stage_image.py"]},
+  d4: {c: 5, y: 572, t: "HF Space", f: "deploy/space/", art: "a-serve",
+    what: "The live demo: Ollama with qwen3.5:4b, the API and the page in one container behind nginx, on the free CPU tier.",
+    in: "build/space/", out: "huggingface.co/spaces/mazenDDr/contract-rag", fns: ["push_space.py", "start.sh", "nginx.conf"], files: ["deploy/space/Dockerfile", "deploy/space/start.sh", "scripts/push_space.py"]},
+  d5: {c: 6, y: 572, t: "Web page", f: "ui/streamlit_app.py", art: "a-serve",
+    what: "Pick a contract, ask, open each citation. Calls the API with the key held on the server.",
+    in: "a person", out: "a question to the API", fns: ["load_contracts", "show_answer"], files: ["ui/streamlit_app.py"]},
+};
+const node = id => { const n = NODES[id]; return {x: COL[n.c], y: n.y, w: W, h: n.hh || H}; };
+const R = id => { const b = node(id); return [b.x + b.w, b.y + b.h / 2]; };
+const L = id => { const b = node(id); return [b.x, b.y + b.h / 2]; };
+const T = (id, dx = 0) => { const b = node(id); return [b.x + b.w / 2 + dx, b.y]; };
+const B = (id, dx = 0) => { const b = node(id); return [b.x + b.w / 2 + dx, b.y + b.h]; };
+const line = (a, b) => `M${a[0]} ${a[1]} H${b[0]}`;
+const EDGES = [
+  ["a1-a2", line(R("a1"), L("a2"))], ["a2-a3", line(R("a2"), L("a3"))], ["a3-a4", line(R("a3"), L("a4"))],
+  ["a4-b3", `M${B("a4", -34).join(" ")} V168 H${T("b3", 30)[0]} V${T("b3")[1]}`, "reads indexes"],
+  ["b1-b2", line(R("b1"), L("b2"))], ["b2-b3", line(R("b2"), L("b3"))], ["b3-b4", line(R("b3"), L("b4"))],
+  ["b4-b5", line(R("b4"), L("b5"))], ["b5-b6", line(R("b5"), L("b6"))], ["b6-b7", line(R("b6"), L("b7"))],
+  ["a3-c2", `M${B("a3", -40).join(" ")} V160 H166 V352 H${T("c2")[0]} V${T("c2")[1]}`, "chunks to label"],
+  ["c1-b1", `M${T("c1")[0]} ${T("c1")[1]} V${B("b1")[1]}`, "70 test questions"],
+  ["c1-c2", line(R("c1"), L("c2"))], ["c2-c3", line(R("c2"), L("c3"))],
+  ["b4-c3", `M${B("b4", -30).join(" ")} V330 H${T("c3", 30)[0]} V${T("c3")[1]}`, "every ranking"],
+  ["c3-c4", line(R("c3"), L("c4"))], ["c4-c5", line(R("c4"), L("c5"))], ["c5-c6", line(R("c5"), L("c6"))],
+  ["b7-c6", `M${B("b7").join(" ")} V330 H${T("c6", 30)[0]} V${T("c6")[1]}`, "graded"],
+  ["c6-c7", line(R("c6"), L("c7"))], ["c6-c8", `M${B("c6").join(" ")} V${T("c8")[1]}`],
+  ["c4-d1", `M${B("c4", -30).join(" ")} V540 H${T("d1", 20)[0]} V${T("d1")[1]}`, "the winner: fixed + BM25"],
+  ["d1-d2", line(R("d1"), L("d2"))], ["d2-d3", line(R("d2"), L("d3"))], ["d3-d4", line(R("d3"), L("d4"))],
+  ["d5-d4", `M${L("d5")[0]} ${L("d5")[1]} H${R("d4")[0]}`],
+];
+const TOURS = {
+  build: [
+    [["a1"], [], "The CUAD archive is downloaded, verified, and 100 of its 510 contracts are picked, keeping each contract type's share."],
+    [["a2"], ["a1-a2"], "Each PDF is read with its layout: headings, tables, pages, and the exact character position of every block."],
+    [["a3"], ["a2-a3"], "The text is cut three ways, so the best way to cut can be measured instead of guessed."],
+    [["a4"], ["a3-a4"], "Every chunk is indexed by its words (BM25) and by its meaning (three embedding models)."],
+    [["a5"], [], "Every hand-off above is a schemas.py model, so each stage can be tested on its own."],
+  ],
+  ask: [
+    [["b1"], [], "A question comes in about one contract: \"Can a party end the agreement early without cause, and on what notice?\""],
+    [["b2"], ["b1-b2"], "Search is limited to that contract, and the contract's name is taken out of the query."],
+    [["b3", "a4"], ["b2-b3", "a4-b3"], "BM25 scores every chunk of the contract; the clause's chunk comes 5th."],
+    [["b4"], ["b3-b4"], "The served setup keeps BM25's top 8 as they are: fusion and rerankers didn't beat it."],
+    [["b5"], ["b4-b5"], "The 8 excerpts are numbered [1]…[8] under strict rules: cite every sentence, or abstain."],
+    [["b6"], ["b5-b6"], "qwen3.5:4b answers locally in about 8 seconds on the laptop's GPU."],
+    [["b7"], ["b6-b7"], "\"Either party may terminate … upon ninety (90) days written notice [5]\": and [5] maps back to the exact chunk."],
+  ],
+  measure: [
+    [["c1"], [], "100 questions with lawyer-marked answers, split by contract into dev and test."],
+    [["c2"], ["c1-c2", "a3-c2"], "Each highlight is found in our text; chunks overlapping it enough count as relevant."],
+    [["c3", "b4"], ["c2-c3", "b4-c3"], "Every ranking the pipeline produces is scored: recall@8, MRR, with intervals."],
+    [["c4"], ["c3-c4"], "189 search setups are scored in 16 minutes; the best are picked on dev and reported on test."],
+    [["c5"], ["c4-c5"], "The chosen 8 run end to end on 70 test questions: 560 answers."],
+    [["c6", "b7"], ["c5-c6", "b7-c6"], "Each answer's statements are checked against only the excerpts they cite, then graded for correctness."],
+    [["c8"], ["c6-c8"], "The grader itself is checked against reference labels (κ 0.60) before its scores are trusted."],
+    [["c7"], ["c6-c7"], "Every failure is traced to the first stage that broke: 62% happen before the model sees the evidence."],
+  ],
+  serve: [
+    [["d5"], [], "Someone opens the Space, picks a contract and types a question."],
+    [["d4"], ["d5-d4"], "Inside the Space, nginx passes it on; everything runs in one container on 2 CPU cores."],
+    [["d2"], [], "The API checks the key, stamps a request id, and will log one JSON line when done."],
+    [["d1", "c4"], ["c4-d1"], "The service runs the setup the ablation picked: fixed chunks + BM25 inside the contract, top 8."],
+    [["b3", "b6"], [], "Search takes milliseconds; the 4B model's answer takes minutes on CPU (seconds on a GPU)."],
+    [["d3"], ["d2-d3", "d3-d4"], "The same code ships as a slim Docker image, so it runs the same anywhere."],
+  ],
+};
+
+function drawMap() {
+  const svg = $("#mapSvg"), NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent.appendChild(e); return e; };
+  const defs = el("defs", {});
+  for (const [id, cls] of [["ah", "arrowhead"], ["ahl", "arrowhead lit"]]) {
+    const m = el("marker", {id, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse"}, defs);
+    el("path", {d: "M0 0 L10 5 L0 10 z", class: cls}, m);
+  }
+  for (const l of LANES) {
+    el("rect", {x: 8, y: l.y, width: 1104, height: l.h, rx: 6, class: "lane-bg"});
+    el("text", {x: 20, y: l.y + 18, class: "lane-t"}).textContent = l.t;
+  }
+  for (const [id, d, label] of EDGES) {
+    const p = el("path", {d, class: "edge", "data-e": id, "marker-end": "url(#ah)"});
+    if (label) {
+      const bb = {x: 0, y: 0};
+      const nums = d.match(/-?\d+(\.\d+)?/g).map(Number);
+      const horizontal = /^M[\d.]+ [\d.]+ H[\d.]+$/.test(d);
+      if (horizontal) { bb.x = (nums[0] + nums[2]) / 2; bb.y = nums[1] - 7; }
+      else { bb.x = nums[0] + 6; bb.y = nums[1] + 16; }
+      const t = el("text", {x: bb.x, y: bb.y, class: "elabel", "data-e": id, "text-anchor": horizontal ? "middle" : "start"});
+      t.textContent = label;
+    }
+  }
+  for (const [id, n] of Object.entries(NODES)) {
+    const b = node(id);
+    const g = el("g", {class: "node", "data-n": id, tabindex: "0", role: "button", "aria-label": `${n.t}: ${n.f}`});
+    el("rect", {x: b.x, y: b.y, width: b.w, height: b.h, rx: 8}, g);
+    el("text", {x: b.x + 12, y: b.y + (b.h > 50 ? 25 : 21), class: "t"}, g).textContent = n.t;
+    el("text", {x: b.x + 12, y: b.y + (b.h > 50 ? 43 : 37), class: "f"}, g).textContent = n.f;
+    g.addEventListener("click", () => { stopTour(); select(id); });
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); stopTour(); select(id); } });
+  }
+}
+
+function select(id) {
+  $$("#mapSvg .node").forEach(g => g.classList.toggle("sel", g.dataset.n === id));
+  const n = NODES[id];
+  $("#nodeCard").innerHTML = `
+    <div><span class="label">${esc(n.f)}</span><h3>${esc(n.t)}</h3><p>${esc(n.what)}</p>
+      <a class="go" href="#${n.art}">Read the article ↓</a></div>
+    <dl><div><dt>Reads</dt><dd>${esc(n.in)}</dd></div><div><dt>Writes</dt><dd>${esc(n.out)}</dd></div></dl>
+    <div><span class="label">Key pieces</span><div class="fnlist">${n.fns.map(f => `<code>${esc(f)}</code>`).join("")}</div>
+      <div class="files-list">${n.files.map(f => `<a href="${GH}${f}">${esc(f)}</a>`).join("")}</div></div>`;
+}
+
+let tourTimer = null, tourName = null;
+function stopTour() {
+  clearTimeout(tourTimer); tourTimer = null; tourName = null;
+  $("#mapSvg").classList.remove("tracing");
+  $$("#mapSvg .lit").forEach(e => e.classList.remove("lit"));
+  $$("#mapSvg .edge").forEach(e => e.setAttribute("marker-end", "url(#ah)"));
+  $$("[data-tour]").forEach(b => b.setAttribute("aria-pressed", "false"));
+}
+function showStep(name, i) {
+  const steps = TOURS[name], [nodes, edges, text] = steps[i], svg = $("#mapSvg");
+  svg.classList.add("tracing");
+  $$("#mapSvg .node").forEach(g => g.classList.toggle("lit", nodes.includes(g.dataset.n)));
+  $$("#mapSvg [data-e]").forEach(e => {
+    const on = edges.includes(e.dataset.e);
+    e.classList.toggle("lit", on);
+    if (e.tagName === "path") e.setAttribute("marker-end", on ? "url(#ahl)" : "url(#ah)");
+  });
+  $("#mapCap").innerHTML = `<span class="stepno">${i + 1} / ${steps.length}</span><span>${esc(text)}</span>`;
+  select(nodes[0]);
+}
+function playTour(name) {
+  stopTour(); tourName = name;
+  $(`[data-tour="${name}"]`).setAttribute("aria-pressed", "true");
+  let i = 0;
+  const next = () => {
+    if (tourName !== name) return;
+    showStep(name, i);
+    i += 1;
+    if (i < TOURS[name].length) tourTimer = setTimeout(next, REDUCE ? 4200 : 2800);
+    else tourTimer = setTimeout(() => { if (tourName === name) $(`[data-tour="${name}"]`).setAttribute("aria-pressed", "false"); }, 2800);
+  };
+  next();
+}
+drawMap();
+select("b1");
+$$("[data-tour]").forEach(b => b.addEventListener("click", () => b.getAttribute("aria-pressed") === "true" ? stopTour() : playTour(b.dataset.tour)));
+
+/* ---------- contents: built from the articles, marks the one being read ---------- */
+(() => {
+  const toc = $("#toc"), groups = {"part-build": "Build", "part-answer": "Answer", "part-measure": "Measure", "part-serve": "Serve"};
+  for (const el of $$("#articles > .part-h, #articles > .art")) {
+    if (el.classList.contains("part-h")) { toc.appendChild(h("li", {class: "grp"}, groups[el.id] || "")); continue; }
+    const [n, t] = el.dataset.toc.split("|");
+    const li = h("li"); li.appendChild(h("a", {href: "#" + el.id}, `<span class="n">${n}</span><span>${esc(t)}</span>`));
+    toc.appendChild(li);
+  }
+  const links = new Map($$("#toc a").map(a => [a.getAttribute("href").slice(1), a]));
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) { links.forEach(a => a.classList.remove("on")); links.get(e.target.id)?.classList.add("on"); }
+  }, {rootMargin: "-30% 0px -60% 0px"});
+  $$("#articles > .art").forEach(a => io.observe(a));
+})();
+
+/* ---------- figure player: each figure renders its final state, and animates into it when first seen ---------- */
+const PLAYERS = {};
+function timeline(fig, steps) {
+  const id = (fig._run = (fig._run || 0) + 1);
+  let t = 0;
+  for (const [dt, fn] of steps) { t += dt; setTimeout(() => { if (fig._run === id) fn(); }, t); }
+}
+function setupFigures() {
+  const figs = $$("figure[data-anim]");
+  for (const fig of figs) {
+    const p = PLAYERS[fig.dataset.anim];
+    if (!p) continue;
+    p.init(fig);
+    $(".replay", fig)?.addEventListener("click", () => p.play(fig));
+  }
+  if (REDUCE) return;
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (!e.isIntersecting || e.target.dataset.played) continue;
+      e.target.dataset.played = "1";
+      PLAYERS[e.target.dataset.anim]?.play(e.target);
+    }
+  }, {threshold: 0.35});
+  figs.forEach(f => io.observe(f));
+}
+</script>
+
+<script>
+/* ---------- I. corpus ---------- */
+const TYPES = [["Maintenance",34,7],["License",33,6],["Distributor",32,6],["Strategic Alliance",32,6],["Sponsorship",31,6],["Development",29,6],["Service",28,5],["Collaboration",26,5],["Endorsement",24,5],["Joint Venture",23,5],["Co-Branding",22,4],["Hosting",20,4],["Supply",18,4],["Outsourcing",18,4],["Manufacturing",17,3],["IP",17,3],["Marketing",17,3],["Franchise",15,3],["Agency",13,3],["Transportation",13,3],["Reseller",12,2],["Promotion",12,2],["Consulting",11,2],["Affiliate",10,2],["Non-compete",3,1]];
+PLAYERS.corpus = {
+  init(fig) {
+    const grid = $("#corpusGrid");
+    for (const [name, total, dev] of TYPES) {
+      grid.appendChild(h("span", {class: "tname", title: name + " agreements"}, esc(name)));
+      const dots = h("span", {class: "dots", "aria-label": `${name}: ${total} contracts, ${dev} in the working set`});
+      const every = total / dev;
+      const picks = new Set(Array.from({length: dev}, (_, i) => Math.floor(i * every + every / 2)));
+      for (let i = 0; i < total; i++) dots.appendChild(h("i", picks.has(i) ? {class: "pick"} : {}));
+      grid.appendChild(dots);
+    }
+  },
+  play(fig) {
+    const picks = $$(".dots i.pick", fig);
+    picks.forEach(d => d.classList.remove("pick"));
+    const note = $("#corpusNote");
+    let n = 0;
+    timeline(fig, [[350, () => { note.textContent = "Sampling each type in proportion…"; }],
+      ...picks.map(d => [22, () => { d.classList.add("pick"); n += 1; note.textContent = `${n} of 510 picked`; }]),
+      [400, () => { note.textContent = "Each dot is one contract. Teal dots are the 100 in the working set: every type keeps its proportion."; }]]);
+  },
+};
+
+/* ---------- II. parse ---------- */
+const BLOCK_COUNTS = [["paragraph", 9562], ["heading", 5714], ["list item", 2140], ["other", 35], ["table", 65]];
+function hbars(el, rows, max, fmtv = v => v.toLocaleString("en-US")) {
+  el.innerHTML = rows.map(([label, v, cls]) => `<div class="hb ${cls || ""}"><span>${esc(label)}</span><span class="tr"><span class="br" style="width:${(100 * v / max).toFixed(1)}%" data-w="${(100 * v / max).toFixed(1)}"></span></span><span class="v">${fmtv(v)}</span></div>`).join("");
+}
+function growBars(el, fig, delay = 0) {
+  const bars = $$(".br", el);
+  bars.forEach(b => { b.style.transition = "none"; b.style.width = "0%"; });
+  void el.offsetWidth;
+  timeline(fig, [[delay + 30, () => bars.forEach(b => { b.style.transition = ""; b.style.width = b.dataset.w + "%"; })]]);
+}
+PLAYERS.parse = {
+  init(fig) {
+    $$(".pb", fig).forEach(b => b.classList.add("tagged"));
+    hbars($("#blockBars"), BLOCK_COUNTS, 9562);
+  },
+  play(fig) {
+    const blocks = $$(".pb", fig), scan = $(".scan", fig), pg = $("#pg");
+    blocks.forEach(b => b.classList.remove("tagged"));
+    scan.style.transition = "none"; scan.style.top = "0"; scan.style.opacity = "1";
+    void scan.offsetWidth;
+    const H = pg.clientHeight;
+    scan.style.transition = "top 2.6s linear"; scan.style.top = (H - 2) + "px";
+    timeline(fig, [...blocks.map(b => [0, () => {}]),
+      ...blocks.map((b, i) => [i === 0 ? 2600 * (b.offsetTop + b.offsetHeight / 2) / H : 2600 * ((b.offsetTop + b.offsetHeight / 2) - (blocks[i - 1].offsetTop + blocks[i - 1].offsetHeight / 2)) / H, () => b.classList.add("tagged")]),
+      [500, () => { scan.style.opacity = "0"; }]]);
+    growBars($("#blockBars"), fig, 2400);
+  },
+};
+
+/* ---------- III. chunks ---------- */
+const CHUNK_STATS = [["fixed 512/64", 2166, "median 512 tokens"], ["section", 5578, "median 110 tokens"], ["sentence window", 20898, "median 34 tokens"]];
+const CNOTES = {
+  fixed: s => `Fixed: 2 of this contract's ${s.fixed.count} chunks meet here. The clause sits in their 64-token overlap (striped), so <b>both</b> chunks contain it. A cut ✂ can fall mid-sentence.`,
+  section: s => `Section: 1 of ${s.section.count}. All of "4. Term and Termination" fits in one chunk, so the clause arrives with its whole section.`,
+  sentence_window: s => `Sentence window: ${s.sentence_window.near.length} of ${s.sentence_window.count} chunks shown. The clause is exactly one sentence; the model reads it with 3 sentences on each side.`,
+};
+function chunkSpans() {
+  const [lo, hi] = STORY.window_at, cuts = new Set([lo, hi, ...STORY.evidence_at]);
+  for (const s of Object.values(STORY.chunks)) for (const c of s.near) { cuts.add(Math.max(lo, Math.min(hi, c.at[0]))); cuts.add(Math.max(lo, Math.min(hi, c.at[1]))); }
+  const pts = [...cuts].sort((a, b) => a - b);
+  return pts.slice(0, -1).map((a, i) => [a, pts[i + 1]]).filter(([a, b]) => b > a);
+}
+function renderChunks(mode) {
+  const [lo] = STORY.window_at, [e0, e1] = STORY.evidence_at, near = STORY.chunks[mode].near;
+  const starts = new Set(near.map(c => c.at[0]));
+  const html = chunkSpans().map(([a, b]) => {
+    const inside = near.map((c, i) => (c.at[0] <= a && b <= c.at[1]) ? i : -1).filter(i => i >= 0);
+    let cls = "";
+    if (mode === "fixed") cls = inside.length > 1 ? "both" : inside.length ? (inside[0] % 2 ? "c2" : "c1") : "";
+    else if (inside.length) cls = inside[0] % 2 ? "c2" : "c1";
+    if (a >= e0 && b <= e1) cls += " ev";
+    const cut = mode !== "section" && starts.has(a) && a > lo ? '<span class="cut" aria-hidden="true"></span>' : "";
+    return `${cut}<span class="s ${cls}">${esc(STORY.window.slice(a - lo, b - lo))}</span>`;
+  }).join("");
+  $("#ctext").innerHTML = "…" + html + "…";
+  $("#cnote").innerHTML = CNOTES[mode](STORY.chunks);
+  $$("[data-mode]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+}
+PLAYERS.chunk = {
+  init(fig) {
+    renderChunks("fixed");
+    $$("[data-mode]", fig).forEach(b => b.addEventListener("click", () => { fig._run = (fig._run || 0) + 1; renderChunks(b.dataset.mode); }));
+    $("#chunkBars").innerHTML = CHUNK_STATS.map(([l, v, m]) => `<div class="hb"><span>${l}<br><span style="color:var(--ink-3)">${m}</span></span><span class="tr"><span class="br" style="width:${(100 * v / 20898).toFixed(1)}%" data-w="${(100 * v / 20898).toFixed(1)}"></span></span><span class="v">${v.toLocaleString("en-US")}</span></div>`).join("");
+  },
+  play(fig) {
+    timeline(fig, [[0, () => renderChunks("fixed")], [2600, () => renderChunks("section")], [2600, () => renderChunks("sentence_window")], [3000, () => renderChunks("fixed")]]);
+    growBars($("#chunkBars"), fig, 200);
+  },
+};
+
+/* ---------- VII. labels ---------- */
+const overlap = (a, b) => Math.max(0, Math.min(a[1], b[1]) - Math.max(a[0], b[0]));
+PLAYERS.labels = {
+  init(fig) {
+    const [lo, hi] = STORY.window_at, ev = STORY.evidence_at, span = hi - lo;
+    $("#evAt").textContent = `${ev[0].toLocaleString("en-US")}–${ev[1].toLocaleString("en-US")}`;
+    const pick = (s, ids) => STORY.chunks[s].near.filter(c => ids.includes(c.id.split("::")[1]));
+    const rows = [...pick("fixed", ["00001", "00002"]), ...pick("section", ["00001"]), ...pick("sentence_window", ["00027", "00028", "00029"])];
+    const pct = x => (100 * (Math.max(lo, Math.min(hi, x)) - lo) / span).toFixed(2);
+    $("#labRows").innerHTML = rows.map(c => {
+      const ov = overlap(c.at, ev), need = 0.5 * Math.min(c.at[1] - c.at[0], ev[1] - ev[0]), rel = ov > 0 && ov >= need;
+      const name = c.id.replace("sentence_window", "sentence");
+      return `<div class="lrow"><span>${esc(name)}</span><span class="track"><span class="bar ${rel ? "rel" : ""}" style="left:${pct(c.at[0])}%;width:${(pct(c.at[1]) - pct(c.at[0])).toFixed(2)}%" data-w="${(pct(c.at[1]) - pct(c.at[0])).toFixed(2)}"></span><span class="band" style="left:${pct(ev[0])}%;width:${(pct(ev[1]) - pct(ev[0])).toFixed(2)}%"></span></span><span class="vd ${rel ? "yes" : "no"}">${rel ? "relevant" : ov ? "too little" : "no overlap"}</span></div>`;
+    }).join("");
+    $("#labAxis").innerHTML = `<span>char ${lo.toLocaleString("en-US")}</span><span>characters of the parsed contract</span><span>${hi.toLocaleString("en-US")}</span>`;
+  },
+  play(fig) {
+    const steps = $$("#alignSteps li"), lab = $("#labRows"), bars = $$(".bar", lab);
+    steps.forEach(s => s.classList.add("off"));
+    lab.classList.add("hide");
+    bars.forEach(b => { b.classList.add("pending"); b.dataset.rel = b.classList.contains("rel") ? "1" : ""; b.classList.remove("rel"); });
+    timeline(fig, [...steps.map(s => [600, () => s.classList.remove("off")]),
+      [700, () => lab.classList.remove("hide")],
+      [900, () => bars.forEach(b => { if (b.dataset.rel) b.classList.add("rel"); })]]);
+  },
+};
+
+/* ---------- IV. BM25 terms ---------- */
+const WORDS = [["Can", "can"], ["a", null], ["party", "parti"], ["end", "end"], ["the", null], ["agreement", "agreement"], ["early", "earli"], ["without", "without"], ["cause,", "caus"], ["and", null], ["on", null], ["what", "what"], ["notice?", "notic"]];
+function renderWords(stage) {
+  $("#words").innerHTML = WORDS.map(([w, stem]) => {
+    if (stage === 0) return `<span class="w">${esc(w)}</span>`;
+    if (!stem) return `<span class="w stop">${esc(w)}</span>`;
+    return `<span class="w ${stage === 2 ? "term" : ""}">${esc(stage === 2 ? stem : w.replace(/[,?]/, ""))}</span>`;
+  }).join("");
+  $("#wnote").innerHTML = ["The question, after the contract's name was replaced by \"the agreement\".",
+    "Common words (a, the, and, on) carry no signal and are dropped.",
+    "The rest are stemmed: party → <code>parti</code>, early → <code>earli</code>, notice → <code>notic</code>. These 9 terms are what BM25 looks up."][stage];
+}
+PLAYERS.bm25 = {
+  init(fig) {
+    renderWords(2);
+    const hits = new Set(STORY.chunks.fixed.near.filter(c => c.has_evidence).map(c => c.id));
+    const max = STORY.bm25[0].score;
+    hbars($("#bm25Bars"), STORY.bm25.map(r => [`#${r.rank}  ${r.id}`, r.score, hits.has(r.id) ? "hit" : "miss"]), max, v => v.toFixed(2));
+  },
+  play(fig) {
+    timeline(fig, [[0, () => renderWords(0)], [1400, () => renderWords(1)], [1600, () => renderWords(2)]]);
+    growBars($("#bm25Bars"), fig, 3100);
+  },
+};
+
+/* ---------- V. fusion ---------- */
+function rankings() {
+  const ids = STORY.bm25.map(r => r.id);
+  const br = Object.fromEntries(STORY.bm25.map(r => [r.id, r])), dr = Object.fromEntries(STORY.dense_bge_base.map(r => [r.id, r]));
+  const mm = rows => { const s = rows.map(r => r.score), lo = Math.min(...s), hi = Math.max(...s); return Object.fromEntries(rows.map(r => [r.id, hi > lo ? (r.score - lo) / (hi - lo) : 1])); };
+  const bn = mm(STORY.bm25), dn = mm(STORY.dense_bge_base);
+  const score = {
+    bm25: id => br[id].score,
+    dense: id => dr[id].score,
+    rrf: id => 1 / (60 + br[id].rank) + 1 / (60 + dr[id].rank),
+    weighted: id => 0.4 * dn[id] + 0.6 * bn[id],
+  };
+  const out = {};
+  for (const [m, f] of Object.entries(score)) out[m] = [...ids].sort((a, b) => f(b) - f(a) || br[a].rank - br[b].rank).map(id => ({id, s: f(id)}));
+  return out;
+}
+const FNOTE = {
+  bm25: r => `BM25 puts the clause's chunk <b>${r}</b>: word overlap alone is decent but not first.`,
+  dense: r => `The embedding model puts it <b>${r}</b>: "end early without cause" means "terminate for any reason".`,
+  rrf: r => `RRF adds 1 / (60 + rank) from both lists: <b>${r}</b>. Agreement between the two lifts it.`,
+  weighted: r => `Weighted fusion, each list scaled to 0–1, 0.4 on embeddings: <b>${r}</b>.`,
+};
+let RANKS = null;
+function showRanking(mode) {
+  const list = $("#flist"), rows = RANKS[mode];
+  rows.forEach((r, i) => {
+    const row = $(`.frow[data-id="${r.id}"]`, list);
+    row.style.top = (i * 30 + (i >= 8 ? 12 : 0)) + "px";
+    $(".rk", row).textContent = "#" + (i + 1);
+    $(".sc", row).textContent = mode === "rrf" ? r.s.toFixed(4) : r.s.toFixed(3);
+    row.classList.toggle("cut8", i >= 8);
+  });
+  const pos = rows.findIndex(r => r.id === "fixed::00002") + 1;
+  $("#fnote").innerHTML = FNOTE[mode]("#" + pos);
+  $$("[data-rank]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.rank === mode)));
+}
+PLAYERS.fusion = {
+  init(fig) {
+    RANKS = rankings();
+    const hits = new Set(STORY.chunks.fixed.near.filter(c => c.has_evidence).map(c => c.id));
+    const list = $("#flist");
+    list.style.height = (12 * 30 + 12) + "px";
+    list.innerHTML = `<div class="line8" style="top:${8 * 30 + 4}px"><span>top 8 → the model</span></div>` +
+      STORY.bm25.map(r => `<div class="frow ${hits.has(r.id) ? "hit" : ""}" data-id="${r.id}"><span class="rk"></span><span>${esc(r.id)}${hits.has(r.id) ? " · holds the clause" : ""}</span><span class="sc"></span></div>`).join("");
+    showRanking("bm25");
+    $$("[data-rank]", fig).forEach(b => b.addEventListener("click", () => { fig._run = (fig._run || 0) + 1; showRanking(b.dataset.rank); }));
+  },
+  play(fig) {
+    timeline(fig, [[0, () => showRanking("bm25")], [2400, () => showRanking("dense")], [2400, () => showRanking("rrf")], [2400, () => showRanking("weighted")], [2600, () => showRanking("bm25")]]);
+  },
+};
+</script>
+
+<script>
+const TREE = /*__TREE__*/null;
+
+/* shared: rows of bars with a 95% interval and an optional dot, on a fixed scale */
+function ciRows(el, rows, [lo, hi], opts = {}) {
+  const pos = x => (100 * (x - lo) / (hi - lo));
+  el.innerHTML = rows.map(r => {
+    const [label, v, a, b, dot, best] = r, z = pos(Math.max(lo, 0)), p = pos(v);
+    const left = Math.min(z, p), width = Math.abs(p - z);
+    return `<div class="cirow ${best ? "best" : ""}"><span>${esc(label)}</span><span class="citr">
+      ${lo < 0 ? `<span class="zero" style="left:${z}%"></span>` : ""}
+      <span class="br ${v < 0 ? "neg" : ""}" style="left:${left}%;width:${width}%" data-l="${left}" data-w="${width}"></span>
+      <span class="wh" style="left:${pos(a)}%;width:${pos(b) - pos(a)}%"></span>
+      ${dot != null ? `<span class="dot" style="left:${pos(dot)}%" title="faithfulness ${dot}"></span>` : ""}
+    </span><span class="v">${opts.signed && v > 0 ? "+" : ""}${fmt(v, opts.d ?? 2)}</span></div>`;
+  }).join("");
+}
+function growCi(el, fig, delay = 0) {
+  el.classList.add("hide");
+  timeline(fig, [[delay + 40, () => el.classList.remove("hide")]]);
+}
+
+/* ---------- VIII. the grid ---------- */
+const DELTAS = [
+  ["Embeddings instead of BM25", -0.243, -0.336, -0.151],
+  ["BM25 + embeddings instead of BM25", -0.020, -0.046, 0.004],
+  ["Add MiniLM reranker", 0.006, -0.076, 0.088],
+  ["Add bge-reranker-base", -0.148, -0.245, -0.058],
+  ["Drop the contract's name from the query", 0.396, 0.287, 0.501],
+];
+const SERVED = "fixed__bm25__nodense__none__norerank__k8__doc";
+PLAYERS.grid = {
+  init(fig) {
+    const by = {};
+    for (const r of GRID) (by[r[0].split("__")[0]] ||= []).push(r);
+    const names = {fixed: "fixed", section: "section", sentence_window: "sentence window"};
+    $("#heat").innerHTML = ["fixed", "section", "sentence_window"].map(k => {
+      const rows = by[k].sort((a, b) => b[2] - a[2]);
+      return `<div class="hm-row"><span>${names[k]}<br><span style="color:var(--ink-3)">${rows.length} setups</span></span><span class="cells">${rows.map(r =>
+        `<i class="${r[0] === SERVED ? "best" : ""}" style="background:color-mix(in srgb,var(--mach) ${Math.round(r[2] * 100)}%,var(--sheet-2))" title="${esc(r[1])}${r[0].endsWith("rawq") ? " · name kept in query" : ""} — recall@8 ${fmt(r[2])}, MRR ${fmt(r[3])}, ~${r[4] < 1 ? "<1" : Math.round(r[4])} ms"></i>`).join("")}</span></div>`;
+    }).join("");
+    $("#heatCount").textContent = `${GRID.length} setups`;
+    ciRows($("#deltas"), DELTAS.map(d => [...d, null, d[0].startsWith("Drop")]), [-0.4, 0.6], {signed: true, d: 3});
+  },
+  play(fig) {
+    const heat = $("#heat"), cells = $$("#heat i");
+    cells.forEach(c => { c.style.opacity = "0"; });
+    let n = 0;
+    const per = Math.max(1, Math.round(cells.length / 60));
+    const steps = [];
+    for (let i = 0; i < cells.length; i += per) steps.push([28, () => { cells.slice(i, i + per).forEach(c => { c.style.opacity = ""; }); n = Math.min(cells.length, i + per); $("#heatCount").textContent = `${n} / ${cells.length} scored`; }]);
+    timeline(fig, [...steps, [300, () => { $("#heatCount").textContent = `${cells.length} setups · 16 min`; }]]);
+    growCi($("#deltas"), fig, 1900);
+  },
+};
+
+/* ---------- VI. prompt ---------- */
+PLAYERS.prompt = {
+  init(fig) {
+    const lines = [
+      `<span class="role">system</span> You are a careful legal analyst… Use ONLY the numbered context excerpts.`,
+      `End every sentence of your answer with the excerpt number(s) that support it, like [2] or [1][3].`,
+      `If the excerpts do not contain the answer, set "abstained" to true and do not guess.`,
+      `<span class="role">user</span> Context excerpts:`,
+      ...PROMPT.excerpts.map(e => `<span class="${e.n === 5 ? "ex5" : ""}">[${e.n}] (${esc(e.section)}, ${esc(e.pages)}) …</span>`),
+      `Question: ${esc(STORY.question)}`,
+    ];
+    $("#promptBox").innerHTML = lines.map(l => `<div class="pl">${l}</div>`).join("");
+    this.full = JSON.stringify({answer: STORY.answer, abstained: false});
+    $("#outBox").textContent = this.full;
+    const ex = PROMPT.excerpts[4];
+    $("#pnote").innerHTML = `<span class="cite">[5]</span> → <code>${esc(ex.id)}</code> · ${esc(ex.pages)} · ${esc(ex.section)}. The call: ${PROMPT.prompt_tokens.toLocaleString("en-US")} tokens in, ${PROMPT.completion_tokens} out, ${(PROMPT.latency_ms / 1000).toFixed(1)} s on the laptop's GPU.`;
+  },
+  play(fig) {
+    const lines = $$("#promptBox .pl"), out = $("#outBox"), note = $("#pnote"), full = this.full;
+    lines.forEach(l => l.classList.add("off"));
+    out.innerHTML = '<span class="caret"></span>';
+    note.style.opacity = "0";
+    const typing = [];
+    for (let i = 1; i <= full.length; i += 3) typing.push([22, () => { out.innerHTML = esc(full.slice(0, i)) + '<span class="caret"></span>'; }]);
+    timeline(fig, [...lines.map(l => [160, () => l.classList.remove("off")]), [500, () => {}], ...typing,
+      [200, () => { out.textContent = full; note.style.transition = "opacity .5s"; note.style.opacity = "1"; }]]);
+  },
+};
+
+/* ---------- IX. judge ---------- */
+PLAYERS.judge = {
+  init(fig) {
+    const J = JUDGED;
+    $("#jq").innerHTML = `<b>Q:</b> ${esc(J.question)}<br><b>Answer:</b> ${esc(J.answer)}`;
+    $("#stmts").innerHTML = J.statements.map((s, i) => {
+      const ex = s.cited.map(n => J.excerpts[String(n)]).filter(Boolean)[0];
+      return `<div class="st ${s.supported ? "yes" : "no"}"><span class="label">Statement ${i + 1} · cites ${s.cited.map(n => `[${n}]`).join("")}</span>
+        <span class="stext">${esc(s.text)}</span>
+        ${ex ? `<span class="ex">[${s.cited[0]}] ${esc(ex.id)}, page ${ex.page}: “${esc(ex.text.slice(0, 260))}…”</span>` : ""}
+        <span class="vd">${s.supported ? "✓ supported" : "✗ not supported"}: ${esc(s.reason)}</span></div>`;
+    }).join("");
+    const S = J.scores, g = J.grade.correctness;
+    $("#jscores").innerHTML = `<span class="num ${S.faithfulness < 1 ? "warn" : "good"}">faithfulness <b>${fmt(S.faithfulness)}</b></span>
+      <span class="num">citation validity <b>${fmt(S.citation_validity)}</b></span><span class="num">relevance <b>${fmt(S.answer_relevance)}</b></span>
+      <span class="num good">correctness <b>${esc(g)} · ${fmt(S.answer_correctness, 1)}</b></span>`;
+    hbars($("#kappa"), [["v4: holistic", 0.48, "miss"], ["key facts (rejected)", 0.18, "miss"], ["contradiction-only v5 (in use)", 0.60, "hit"]], 1, v => v.toFixed(2));
+  },
+  play(fig) {
+    const cards = $$("#stmts .st"), scores = $("#jscores");
+    cards.forEach(c => { c.classList.add("off"); $(".vd", c).classList.add("off"); });
+    scores.classList.add("off");
+    timeline(fig, [...cards.flatMap(c => [[700, () => c.classList.remove("off")], [1000, () => $(".vd", c).classList.remove("off")]]),
+      [700, () => scores.classList.remove("off")]]);
+    growBars($("#kappa"), fig, 3600);
+  },
+};
+
+/* ---------- X. the full run ---------- */
+const MATRIX = [
+  ["fixed · BM25 (served)", 0.75, 0.64, 0.84, 0.62, true],
+  ["fixed · BM25 + bge-base weighted", 0.74, 0.63, 0.83, 0.68],
+  ["sentence · BM25 + bge-small weighted", 0.74, 0.64, 0.83, 0.87],
+  ["fixed · BM25 + bge-small weighted", 0.73, 0.62, 0.83, 0.71],
+  ["section · BM25", 0.71, 0.60, 0.81, 0.85],
+  ["fixed · BM25 + MiniLM rerank", 0.70, 0.59, 0.80, 0.55],
+  ["sentence · BM25", 0.67, 0.57, 0.77, 0.83],
+  ["section · BM25 + bge-base RRF", 0.65, 0.54, 0.76, 0.86],
+];
+PLAYERS.matrix = {
+  init(fig) {
+    $("#phases").innerHTML = [["1 · Search", "8 setups × 70 questions; no model loaded"], ["2 · Answer", "qwen3.5:4b in memory; repeats reused"], ["3 · Grade", "gemma4:12b in memory; repeats reused"]]
+      .map(([t, d]) => `<div class="phase"><b>${t}</b>${d}</div>`).join("");
+    ciRows($("#matrixBars"), MATRIX, [0, 1]);
+  },
+  play(fig) {
+    const ph = $$("#phases .phase");
+    timeline(fig, [...ph.map((p, i) => [900, () => ph.forEach((q, j) => q.classList.toggle("on", j === i))]), [900, () => ph.forEach(q => q.classList.remove("on"))]]);
+    growCi($("#matrixBars"), fig, 2900);
+  },
+};
+
+/* ---------- XI. triage ---------- */
+const GATES = [["Evidence inside a chunk?", "lost in chunking"], ["Ranked by BM25 or embeddings?", "retrieval miss"], ["Any of it reached the model?", "ranking miss"], ["All of it reached the model?", "partial evidence"], ["The model answered?", "refused with evidence"], ["Every statement supported?", "unsupported claims"], ["Answer correct?", "misread evidence"]];
+const CASES = [
+  {q: "q0036", text: "Exclusivity <i>and</i> non-compete, in one question. The grant clause ranked 8th; the 3-year non-compete ranked 15th, outside the 8 excerpts the model saw.", fail: 3},
+  {q: "q0089", text: "“Can it end early without cause?” The contract says “Shipper decides to terminate … prior to the commencement of transportation service”, which shares almost no words with the question. It ranked 12th.", fail: 2},
+  {q: "q0074", text: "All the evidence arrived and each statement cited it, but “XIMAGE will give title” came out as “XIMAGE retains ownership”.", fail: 6},
+];
+const FAILS = [["partial evidence", "r", 90, 68], ["ranking miss", "r", 41, 40], ["unsupported claims", "g", 47, 33], ["misread evidence", "g", 69, 25], ["answered unanswerable", "g", 19, 8], ["refused with evidence", "g", 9, 4], ["retrieval miss", "r", 4, 4], ["reranker demotion", "r", 3, 3], ["lost in chunking", "r", 0, 0]];
+function showGates(c, upto) {
+  $("#tcase").innerHTML = `<b>${c.q}</b> · ${c.text}`;
+  $$("#gates .gate").forEach((g, i) => {
+    g.className = "gate" + (i < Math.min(upto, c.fail) ? " pass" : i === c.fail && upto > c.fail ? " fail" : upto > c.fail && i > c.fail ? " skip" : "");
+    $(".mk", g).textContent = g.classList.contains("pass") ? "✓" : g.classList.contains("fail") ? "✗" : "";
+  });
+}
+PLAYERS.triage = {
+  init(fig) {
+    $("#gates").innerHTML = GATES.map(([q, cat], i) => `<div class="gate"><span class="mk"></span><span>${i + 1}. ${esc(q)}</span><span class="cat">${esc(cat)}</span></div>`).join("");
+    showGates(CASES[0], 99);
+    $("#failBars").innerHTML = FAILS.map(([l, st, v1, v3]) => `<div class="hb"><span>${esc(l)}</span><span class="tr"><span class="ghost" style="width:${(100 * v1 / 90).toFixed(1)}%"></span><span class="br ${st === "g" ? "gen" : ""}" style="width:${(100 * v3 / 90).toFixed(1)}%" data-w="${(100 * v3 / 90).toFixed(1)}"></span></span><span class="v">${v3}</span></div>`).join("") +
+      `<div class="hb"><span><b>total</b></span><span></span><span class="v">185</span></div>`;
+  },
+  play(fig) {
+    const steps = [];
+    for (const c of CASES) {
+      for (let k = 0; k <= c.fail + 1; k++) steps.push([k === 0 ? 900 : 480, () => showGates(c, k)]);
+      steps.push([1500, () => {}]);
+    }
+    timeline(fig, steps);
+    growBars($("#failBars"), fig, 400);
+  },
+};
+
+/* ---------- XII. serve ---------- */
+const SEQ = [["page", "POST /api/ask with the X-API-Key header", ""], ["API", "key checked in constant time · request id stamped", "0 ms"], ["search", "BM25 inside the contract → top 8 chunks", "4 ms"], ["model", "qwen3.5:4b reads the excerpts, writes the answer", "11.9 s"], ["API", "each [n] expanded to page, section and text", "12.0 s"]];
+const LOG = `{"ts": "…", "request_id": "3f9c2a1be07d", "method": "POST", "path": "/ask", "status": 200,
+ "ms": 11946.2, "doc_id": "…kubient…", "abstained": false, "citations": 1,
+ "prompt_tokens": 4152, "completion_tokens": 44, "retrieval_ms": 4.1, "generation_ms": 11903.0}`;
+PLAYERS.serve = {
+  init(fig) {
+    $("#seq").innerHTML = SEQ.map(([w, t, ms]) => `<div class="sq"><span class="who ${w === "model" ? "m" : ""}">${w}</span><span>${esc(t)}</span><span class="t">${ms}</span></div>`).join("");
+    $("#logline").textContent = "example log line\n" + LOG;
+    hbars($("#speedBars"), [["qwen3.5:4b (served)", 164, "hit"], ["qwen3.5:2b", 48, "miss"]], 164, v => v + " s");
+    const rows = [["model", "correctness", "citation validity", "faithfulness"], ["4B", "0.75", "0.87", "0.62", true], ["2B", "0.53", "0.14", "0.08"], ["0.8B", "0.32", "0.06", "0.03"]];
+    $("#sizes").innerHTML = rows.map((r, i) => i === 0
+      ? `<div class="size head"><span></span>${r.slice(1).map(x => `<span class="cell">${x}</span>`).join("")}</div>`
+      : `<div class="size ${r[4] ? "pickd" : ""}"><span class="m">qwen3.5 ${r[0]}</span>${r.slice(1, 4).map((x, j) => `<span class="cell"><span>${["correct", "cites", "faithful"][j]}</span><b>${x}</b></span>`).join("")}</div>`).join("");
+  },
+  play(fig) {
+    const rows = $$("#seq .sq"), log = $("#logline");
+    rows.forEach(r => r.classList.add("off")); log.classList.add("off");
+    timeline(fig, [...rows.map((r, i) => [i === 3 ? 500 : 450, () => r.classList.remove("off")]), [900, () => log.classList.remove("off")]]);
+    growBars($("#speedBars"), fig, 3000);
+  },
+};
+
+/* ---------- appendix B: repository map ---------- */
+const DIRS = {
+  "src/contract_rag": "Shared data shapes", "src/contract_rag/ingest": "Download and parse (Articles I–II)",
+  "src/contract_rag/chunking": "Three chunkers (Article III)", "src/contract_rag/retrieval": "Indexes and the search pipeline (IV–V)",
+  "src/contract_rag/generation": "Prompt and model client (VI)", "src/contract_rag/eval": "Exam, answer key, metrics, grading, runs (VII–X)",
+  "src/contract_rag/analysis": "Failure triage (XI)", "src/contract_rag/api": "The web service (XII)", "ui": "The web page",
+  "scripts": "Command-line entry points", "configs": "Every setting, in YAML", "tests": "Tests on a 3-contract fixture",
+  "deploy/space": "The Hugging Face Space", ".": "The API image",
+};
+(() => {
+  const groups = {}, max = Math.max(...TREE.map(f => f[1]));
+  for (const [path, n] of TREE) { const d = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "."; (groups[d] ||= []).push([path, n]); }
+  $("#tree").innerHTML = Object.keys(DIRS).filter(d => groups[d]).map(d => `<div class="tdir"><h3>${d === "." ? "/" : esc(d) + "/"}</h3><p>${esc(DIRS[d])}</p>${groups[d].map(([p, n]) =>
+    `<div class="tfile" style="--w:${(100 * n / max).toFixed(1)}%"><a href="${GH}${p}">${esc(p.split("/").pop())}</a><span class="lnum">${n}</span></div>`).join("")}</div>`).join("");
+})();
+
+setupFigures();
+</script>
+</body>
+</html>
