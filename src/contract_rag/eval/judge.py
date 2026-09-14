@@ -3,7 +3,8 @@
 The answer is split into statements in code, each with the excerpt numbers it cites in the answer text. The
 judge then checks every statement against ONLY the excerpts that statement cites, so it cannot find support
 somewhere else, and marks whether the statement addresses the question. A second call grades correctness
-against the lawyer-derived reference answer.
+against the lawyer-derived reference answer. Details the answer adds beyond the reference count against it
+only when they contradict it: whether they are supported by the contract is the statement check's job.
 
 Deterministic guards: a statement that cites nothing, cites an excerpt that doesn't exist, or states a number
 its cited excerpts never mention is unsupported whatever the judge says. Citation validity and abstention
@@ -20,7 +21,11 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from contract_rag.generation.prompts import ABSTAIN_ANSWER
 from contract_rag.schemas import Chunk, EvalQuestion, EvalScores, GenerationResult
+
+# recorded with every judgement, so runs graded by different rubrics can't be mixed up
+RUBRIC = "contradiction-only-v5"
 
 CORRECTNESS_SCORE = {"correct": 1.0, "partial": 0.5, "incorrect": 0.0}
 
@@ -51,9 +56,13 @@ GRADING_SYSTEM = """You grade whether an answer to a question about a contract i
 You are given the question, a reference answer derived from a lawyer's annotation, the clause text the lawyer
 highlighted, and the answer. The key facts are the ones that directly answer the question; the highlighted
 clauses may contain extra context, so do not require facts the question did not ask for.
-- "correctness": "correct" if the answer states the key facts and contradicts nothing in the reference;
-  "partial" if it states some key facts but misses, blurs or contradicts others; "incorrect" if it misses the
-  key facts, contradicts them, or says the information is not available.
+- "correctness": "correct" if the answer states the key facts, reaches the same conclusion as the reference,
+  and contradicts nothing in the reference or the highlighted clauses; "partial" if it states some key facts
+  but misses, blurs or contradicts others; "incorrect" if it misses the key facts, contradicts them, or says
+  the information is not available.
+- Details the answer adds that the reference and the highlighted clauses do not mention are NOT errors: they
+  may come from elsewhere in the contract, and they are checked separately. Only details that contradict the
+  reference or the highlighted clauses count against the answer.
 - "reason": one or two short sentences.
 
 Respond as JSON: {"correctness": "correct", "reason": "..."}"""
@@ -279,23 +288,71 @@ def citation_validity(gen: GenerationResult) -> float | None:
     return len(gen.cited_chunk_ids) / total
 
 
-def score_answer(
-    question: EvalQuestion, gen: GenerationResult, chunks: Sequence[Chunk], judge: OllamaJudge
-) -> EvalScores:
-    """Answer-side scores for one question; retrieval-side scores come from retrieval_metrics."""
-    scores = EvalScores(qid=question.qid, config_id=gen.config_id, judge_model=judge.model)
-    scores.abstention_correct = gen.abstained == (not question.answerable)
-    scores.citation_validity = citation_validity(gen)
-    detail: dict[str, Any] = {"statements": None, "grade": None}
+_DECLINES = re.compile(
+    r"\b(?:does|do|did) not (?:explicitly |expressly |specifically )?"
+    r"(?:contain|specify|mention|include|state|provide|address|define|set out)"
+    r"|\b(?:doesn't|don't|didn't) (?:contain|specify|mention|include|state|provide|address|define)"
+    r"|\bnot (?:specified|stated|mentioned)\b|\bno (?:specific|explicit)\b",
+    re.IGNORECASE,
+)
 
-    if gen.abstained or not gen.answer.strip():
+
+def declines(gen: GenerationResult) -> bool:
+    """The answer refuses: by its flag, or because its first sentence says the contract doesn't cover it.
+    Many answers write "The agreement does not specify a warranty period" and leave the flag off."""
+    text = gen.answer.strip()
+    if gen.abstained or not text:
+        return True
+    return bool(_DECLINES.search(_SENTENCE_END.split(text, maxsplit=1)[0]))
+
+
+def reuse_verdicts(prior_rationale: str | None, statements: Sequence[Statement]) -> list[Verdict] | None:
+    """Statement verdicts from an earlier judging of the same answer, when it splits into the same statements.
+    Lets a run be re-graded with a new correctness rubric without re-checking every statement."""
+    if not prior_rationale:
+        return None
+    prior = json.loads(prior_rationale).get("statements")
+    if not prior or [p["text"] for p in prior] != [s.text for s in statements]:
+        return None
+    return [
+        Verdict(id=i, supported=p["supported"], on_topic=p.get("on_topic", True), reason=p.get("reason", ""))
+        for i, p in enumerate(prior, start=1)
+    ]
+
+
+def score_answer(
+    question: EvalQuestion,
+    gen: GenerationResult,
+    chunks: Sequence[Chunk],
+    judge: OllamaJudge,
+    prior_rationale: str | None = None,
+) -> EvalScores:
+    """Answer-side scores for one question; retrieval-side scores come from retrieval_metrics.
+
+    The answer is judged on its text. On an unanswerable question, an answer whose first sentence says the
+    contract doesn't cover it counts as an abstention even with the flag off; on an answerable question the
+    flag decides, because "does not specify X; instead ..." there usually introduces the real answer. A
+    refusal with no citations is not sent to the judge, but a "refusal" that reports cited content (for
+    example, that the value is redacted) is graded like any other answer. With `prior_rationale`, statement
+    verdicts are reused, and so is the grade when it was made under the same rubric."""
+    scores = EvalScores(qid=question.qid, config_id=gen.config_id, judge_model=judge.model)
+    declined = declines(gen) if not question.answerable else gen.abstained
+    scores.abstention_correct = declined == (not question.answerable)
+    scores.citation_validity = citation_validity(gen)
+    detail: dict[str, Any] = {"rubric": RUBRIC, "statements": None, "grade": None}
+    prior = json.loads(prior_rationale) if prior_rationale else {}
+
+    text = gen.answer.strip()
+    if not text or text == ABSTAIN_ANSWER or (declines(gen) and not _CITE.search(text)):
         if question.answerable:
             scores.answer_correctness = 0.0  # refusing (or failing) on an answerable question is wrong
         scores.judge_rationale = json.dumps(detail)
         return scores
 
     statements = split_statements(gen.answer)
-    verdicts = judge.check_statements(question.question, statements, chunks)
+    verdicts = reuse_verdicts(prior_rationale, statements)
+    if verdicts is None:
+        verdicts = judge.check_statements(question.question, statements, chunks)
     if verdicts is not None and statements:
         scores.faithfulness = faithfulness_score(statements, verdicts, chunks)
         scores.answer_relevance = sum(v.on_topic for v in verdicts) / len(verdicts)
@@ -308,7 +365,12 @@ def score_answer(
             for st, v in zip(statements, verdicts, strict=True)
         ]
     if question.answerable:
-        grade = judge.grade(question.question, question.reference_answer, question.evidence_spans, gen.answer)
+        if prior.get("rubric") == RUBRIC and prior.get("grade"):
+            grade: Grade | None = Grade.model_validate(prior["grade"])
+        else:
+            grade = judge.grade(
+                question.question, question.reference_answer, question.evidence_spans, gen.answer
+            )
         if grade is not None:
             scores.answer_correctness = CORRECTNESS_SCORE[grade.correctness]
             detail["grade"] = grade.model_dump()
