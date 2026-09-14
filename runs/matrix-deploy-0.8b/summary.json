@@ -1,0 +1,64 @@
+{
+  "configs": {
+    "fixed__bm25__nodense__none__norerank__k8__doc": {
+      "description": "fixed \u00b7 BM25 \u00b7 no rerank \u00b7 contract",
+      "baseline": true,
+      "context_recall": {
+        "mean": 0.8452,
+        "ci_low": 0.7596,
+        "ci_high": 0.9116,
+        "n": 59
+      },
+      "mrr": {
+        "mean": 0.7314,
+        "ci_low": 0.6357,
+        "ci_high": 0.8235,
+        "n": 59
+      },
+      "faithfulness": {
+        "mean": 0.0327,
+        "ci_low": 0.0,
+        "ci_high": 0.0857,
+        "n": 49
+      },
+      "citation_validity": {
+        "mean": 0.0612,
+        "ci_low": 0.0,
+        "ci_high": 0.1429,
+        "n": 49
+      },
+      "answer_relevance": {
+        "mean": 0.9735,
+        "ci_low": 0.9265,
+        "ci_high": 1.0,
+        "n": 49
+      },
+      "answer_correctness": {
+        "mean": 0.322,
+        "ci_low": 0.2203,
+        "ci_high": 0.4237,
+        "n": 59
+      },
+      "abstention_accuracy": {
+        "mean": 0.8,
+        "ci_low": 0.7,
+        "ci_high": 0.8857,
+        "n": 70
+      },
+      "median_retrieval_ms": 0.1,
+      "median_generation_ms": 1768.7
+    }
+  },
+  "comparisons": [],
+  "meta": {
+    "configs": 1,
+    "questions": 70,
+    "split": "test",
+    "generations_reused": 0,
+    "session_minutes": 10.3,
+    "generator": "qwen3.5:0.8b",
+    "judge": "gemma4:12b",
+    "grader": "contradiction-only-v5",
+    "verdicts_reused_from": null
+  }
+}

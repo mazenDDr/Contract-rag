@@ -59,6 +59,7 @@ class MatrixConfig(BaseModel):
     bm25_baselines: bool = True
     select_top: int | None = None  # keep only the top N dev picks (None = all of them)
     extra_configs: list[str] = Field(default_factory=list)
+    configs: list[str] | None = None  # run exactly these configurations instead of choosing from the ablation
     generator: GeneratorConfig = Field(default_factory=GeneratorConfig)
     judge: JudgeConfig = Field(default_factory=JudgeConfig)
     n_boot: int = 2000
@@ -104,6 +105,13 @@ def choose_configs(
     return list(dict.fromkeys(keys))
 
 
+def configs_to_run(cfg: MatrixConfig, summary: dict[str, Any]) -> list[str]:
+    """The configurations listed in `cfg.configs`, else the ones chosen from the ablation."""
+    if cfg.configs:
+        return list(dict.fromkeys(cfg.configs))
+    return choose_configs(summary, cfg.bm25_baselines, cfg.extra_configs, cfg.select_top)
+
+
 def _unload(component: Any) -> None:
     """Ask Ollama to drop a model from memory now instead of after its 5-minute keep-alive, so the
     generator and the judge never sit in RAM together on a 24 GB laptop."""
@@ -136,7 +144,7 @@ def run(
     (run_dir / "config.yaml").write_text(yaml.safe_dump(json.loads(cfg.model_dump_json()), sort_keys=False))
     index_cfg = IndexConfig.model_validate(yaml.safe_load((repo_root / cfg.retrieval_config).read_text()))
     summary = json.loads((repo_root / cfg.ablation_summary).read_text())
-    keys = choose_configs(summary, cfg.bm25_baselines, cfg.extra_configs, cfg.select_top)
+    keys = configs_to_run(cfg, summary)
     parsed = {k: parse_config_key(k) for k in keys}
     lines = (repo_root / cfg.questions_path).read_text().splitlines()
     questions = [

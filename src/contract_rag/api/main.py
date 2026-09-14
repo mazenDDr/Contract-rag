@@ -37,6 +37,7 @@ def main() -> None:
     parser.add_argument("--host")
     parser.add_argument("--port", type=int)
     parser.add_argument("--no-auth", action="store_true", help="serve without an API key (local development)")
+    parser.add_argument("--root-path", default="", help="URL prefix a proxy serves the API under, e.g. /api")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -46,7 +47,12 @@ def main() -> None:
     configure_logging(cfg.log_path)
     service = QAService(cfg, Path.cwd().resolve())
     try:
-        uvicorn.run(create_app(service, api_key), host=args.host or cfg.host, port=args.port or cfg.port)
+        uvicorn.run(
+            create_app(service, api_key),
+            host=args.host or cfg.host,
+            port=args.port or cfg.port,
+            root_path=args.root_path,
+        )
     finally:
         service.close()
 

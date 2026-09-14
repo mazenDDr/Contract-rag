@@ -1,0 +1,20 @@
+# The live demo's setup: the served retrieval (fixed chunks + BM25 inside the contract, top 8) answered by
+# qwen3.5:2b, which is small enough to answer on a free 2-vCPU Space. Same test questions, judge and rubric
+# as runs/matrix-v3, so the 2B compares directly with the 4B used everywhere else.
+# Run: PYTHONPATH=src .venv/bin/python scripts/run_matrix.py --config configs/matrix-deploy.yaml --run-dir runs/matrix-deploy-2b
+ablation_summary: runs/ablation-v1/summary.json
+questions_path: data/eval/questions.jsonl
+documents_path: data/processed/documents.jsonl
+retrieval_config: configs/retrieval.yaml
+runs_dir: runs
+report_path: runs/matrix-deploy-2b/report.md
+split: test
+configs: [fixed__bm25__nodense__none__norerank__k8__doc]
+generator:
+  model: qwen3.5:2b
+judge:
+  model: gemma4:12b
+  think: false
+n_boot: 2000
+seed: 0
+reload_every: 10

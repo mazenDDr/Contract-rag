@@ -13,6 +13,7 @@ import streamlit as st
 
 API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000").rstrip("/")
 HEADERS = {"X-API-Key": key} if (key := os.environ.get("APP_API_KEY")) else {}
+API_TIMEOUT = float(os.environ.get("API_TIMEOUT", "180"))  # seconds; a CPU-only model needs minutes
 
 st.set_page_config(page_title="contract-rag", page_icon="⚖️", layout="centered")
 
@@ -69,7 +70,7 @@ if st.button("Ask", type="primary", disabled=not question.strip()):
                 f"{API_URL}/ask",
                 json={"doc_id": contract["doc_id"], "question": question},
                 headers=HEADERS,
-                timeout=180,
+                timeout=API_TIMEOUT,
             )
         except httpx.HTTPError as exc:
             st.error(f"The request failed: {exc}")
