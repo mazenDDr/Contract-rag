@@ -1,10 +1,14 @@
-"""Build the project website: site/template.html + data from the runs -> site/index.html.
+"""Build the project pages from their templates and the runs:
+site/template.html -> site/index.html (the one-page tour) and site/guide-template.html -> site/guide.html
+(the field guide, which explains every part of the code).
 
-Every number and example on the page comes from the repository's runs:
+Every number and example on the pages comes from the repository's runs:
 - the story section follows one real question (q0078) through parsing, chunking, search, answering and
   judging, using the saved blocks, chunks, per-stage rankings, answer and judge verdicts;
 - the exhibits are real answers from the final answer-quality run, each citation shown with the
-  sentence of its excerpt that best matches the statement citing it.
+  sentence of its excerpt that best matches the statement citing it;
+- the guide adds every ablation configuration's test scores, the story question's numbered prompt
+  excerpts, and one graded answer (q0031) whose statements the judge checked one by one.
 
 Needs data/processed (parsed documents, blocks, chunks) and runs/matrix-v3.
 Run: PYTHONPATH=src .venv/bin/python scripts/build_site.py
@@ -27,6 +31,7 @@ BASE = "fixed__bm25__nodense__none__norerank__k8__doc"  # the headline setup
 HYBRID = "fixed__bm25__bge-base__w0.4__norerank__k8__doc"  # for its embedding ranking
 STORY_QID = "q0078"
 EXHIBITS = ["q0078", "q0046", "q0069", "q0060", "q0048"]
+JUDGED_QID = "q0031"  # graded correct, yet one of its two citations points at the wrong excerpt
 _SENTENCE = re.compile(r"(?<=[.;])\s+(?=[A-Z(\"“])")
 _NUMBER = re.compile(r"\d[\d,]*")
 
@@ -140,6 +145,94 @@ def story(questions, generations, scores, all_chunks) -> dict:
     }
 
 
+def grid() -> list[list]:
+    """Every configuration of the retrieval ablation with its test recall@8, MRR and estimated latency."""
+    summary = json.loads((ROOT / "runs/ablation-v1/summary.json").read_text(encoding="utf-8"))
+    return [
+        [
+            key,
+            cfg["description"],
+            round(cfg["test"]["context_recall"]["mean"], 3),
+            round(cfg["test"]["mrr"]["mean"], 3),
+            cfg["est_latency_ms"],
+        ]
+        for key, cfg in summary["configs"].items()
+    ]
+
+
+def judged(questions, generations, scores, chunks) -> dict:
+    """One graded answer with its statements, verdicts, grade and the excerpts it cites."""
+    q, record, score = questions[JUDGED_QID], generations[JUDGED_QID], scores[JUDGED_QID]
+    detail, final = json.loads(score["judge_rationale"]), record["final"]
+    cited = sorted({n for st in detail["statements"] for n in st["cited"]})
+    return {
+        "qid": JUDGED_QID,
+        "question": q["question"],
+        "reference": q["reference_answer"],
+        "answer": record["generation"]["answer"],
+        "statements": detail["statements"],
+        "grade": detail["grade"],
+        "excerpts": {
+            str(n): {
+                "id": short_id(final[n - 1]),
+                "page": chunks[final[n - 1]].page_start,
+                "text": re.sub(r"\s+", " ", chunks[final[n - 1]].text).strip()[:520],
+            }
+            for n in cited
+        },
+        "scores": {
+            k: score[k]
+            for k in ("faithfulness", "citation_validity", "answer_relevance", "answer_correctness")
+        },
+    }
+
+
+def prompt(generations, chunks) -> dict:
+    """The excerpts the story question's prompt numbered [1]..[8], with the call's token counts."""
+    record = generations[STORY_QID]
+    gen = record["generation"]
+
+    def pages(c) -> str:
+        return f"p.{c.page_start}" if c.page_start == c.page_end else f"pp.{c.page_start}-{c.page_end}"
+
+    return {
+        "excerpts": [
+            {
+                "n": i,
+                "id": short_id(cid),
+                "pages": pages(chunks[cid]),
+                "section": (chunks[cid].section_path or ["no section"])[-1],
+            }
+            for i, cid in enumerate(record["final"], start=1)
+        ],
+        "prompt_tokens": gen["prompt_tokens"],
+        "completion_tokens": gen["completion_tokens"],
+        "latency_ms": round(gen["latency_ms"]),
+    }
+
+
+def tree() -> list[list]:
+    """Every source, test, config and deploy file with its line count, for the guide's repository map."""
+    patterns = ("src/contract_rag/**/*.py", "scripts/*.py", "ui/*.py", "tests/*.py", "configs/*.yaml")
+    files = [p for pattern in patterns for p in sorted(ROOT.glob(pattern)) if p.name != "__init__.py"]
+    files += sorted((ROOT / "deploy/space").iterdir()) + [ROOT / "Dockerfile"]
+    return [
+        [p.relative_to(ROOT).as_posix(), len(p.read_text(encoding="utf-8").splitlines())]
+        for p in files
+        if p.is_file()
+    ]
+
+
+def render(template: str, out: str, data: dict) -> None:
+    html = (ROOT / template).read_text(encoding="utf-8")
+    for marker, value in data.items():
+        if marker not in html:
+            raise SystemExit(f"placeholder {marker} missing from {template}")
+        html = html.replace(marker, json.dumps(value, ensure_ascii=False).replace("</", "<\\/"))
+    (ROOT / out).write_text(html, encoding="utf-8")
+    print(f"wrote {out} ({len(html):,} bytes)")
+
+
 def main() -> None:
     questions = {q["qid"]: q for q in read_jsonl(ROOT / "data/eval/questions.jsonl")}
     generations = {g["qid"]: g for g in read_jsonl(RUN / "generation.jsonl") if g["config_id"] == BASE}
@@ -149,17 +242,26 @@ def main() -> None:
         for s in ("fixed", "sentence_window", "section")
     }
     fixed = {c.chunk_id: c for c in all_chunks["fixed"]}
-    data = {
-        "/*__STORY__*/null": story(questions, generations, scores, all_chunks),
-        "/*__EXAMPLES__*/null": exhibits(questions, generations, scores, fixed),
-    }
-    html = (ROOT / "site/template.html").read_text(encoding="utf-8")
-    for marker, value in data.items():
-        if marker not in html:
-            raise SystemExit(f"placeholder {marker} missing from site/template.html")
-        html = html.replace(marker, json.dumps(value, ensure_ascii=False).replace("</", "<\\/"))
-    (ROOT / "site/index.html").write_text(html, encoding="utf-8")
-    print(f"wrote site/index.html ({len(html):,} bytes)")
+    the_story = story(questions, generations, scores, all_chunks)
+    render(
+        "site/template.html",
+        "site/index.html",
+        {
+            "/*__STORY__*/null": the_story,
+            "/*__EXAMPLES__*/null": exhibits(questions, generations, scores, fixed),
+        },
+    )
+    render(
+        "site/guide-template.html",
+        "site/guide.html",
+        {
+            "/*__STORY__*/null": the_story,
+            "/*__GRID__*/null": grid(),
+            "/*__JUDGED__*/null": judged(questions, generations, scores, fixed),
+            "/*__PROMPT__*/null": prompt(generations, fixed),
+            "/*__TREE__*/null": tree(),
+        },
+    )
 
 
 if __name__ == "__main__":
