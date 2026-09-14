@@ -61,7 +61,7 @@ h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.01em;text-w
 @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
 
 /* ---------- nav ---------- */
-.nav{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--desk) 86%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{position:sticky;top:0;z-index:30;background:var(--desk);border-bottom:1px solid var(--line)}
 .nav .wrap{display:flex;align-items:center;gap:18px;height:58px}
 .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font:400 21px/1 var(--display)}
 .brand b{font:700 15px/1 var(--serif);color:var(--sheet);background:var(--ink);width:26px;height:26px;border-radius:50%;display:grid;place-items:center}
@@ -113,24 +113,40 @@ section{padding-block:80px}
 .reveal.pending{transform:translateY(22px);opacity:.35}
 
 /* ---------- scrollytelling ---------- */
-.scrolly{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:48px;align-items:start}
-.stage-wrap{position:sticky;top:74px;height:calc(100vh - 92px);min-height:560px;display:flex}
+/* The whole explainer is pinned while the page scrolls natively through a track 9 steps long: every
+   --step-len of scrolling shows the next step. Nothing intercepts the wheel and nothing depends on snapping,
+   so every notch or swipe moves the page with the device's own smoothness. */
+.story{--step-len:38vh;position:relative;height:calc(8.5 * var(--step-len) + 100vh - 59px)}  /* last step: half a segment */
+.story-pin{position:sticky;top:59px;height:calc(100vh - 59px);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:44px;padding-block:16px}
+.stage-wrap{display:flex;min-height:0}
 .stage{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
-.steps{padding-bottom:12vh}
-.step{min-height:72vh;display:flex;align-items:center}
-.step .card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:26px 26px 22px;box-shadow:var(--shadow);transition:border-color .3s,opacity .3s;opacity:.55}
-.step.active .card{opacity:1;border-color:var(--ink-3)}
+.story-side{display:flex;flex-direction:column;justify-content:center;gap:16px;min-height:0}
+.steps{display:grid}
+.step{grid-area:1/1;opacity:0;transform:translateY(12px);visibility:hidden;pointer-events:none;
+  transition:opacity .3s ease,transform .3s ease,visibility 0s linear .3s}
+.step.active{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition-delay:0s}
+.story-nav{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.story-nav .dot{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--sheet);color:var(--ink-2);font:500 12px/1 var(--mono);cursor:pointer;padding:0}
+.story-nav .dot:hover{border-color:var(--ink-3)}
+.story-nav .dot[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.story-nav .hint{font:500 12.5px/1.3 var(--sans);color:var(--ink-3);margin-left:6px}
+.step .card{background:var(--sheet);border:1px solid var(--ink-3);border-radius:6px;padding:26px 26px 22px;box-shadow:var(--shadow)}
 .step .card h3{font-size:30px;line-height:1.08;margin:8px 0 12px}
 .step .card p{margin:0 0 14px;color:var(--ink-2);font-size:16.5px}
 .why{border-left:3px solid var(--pen);background:var(--pen-soft);border-radius:0 6px 6px 0;padding:12px 14px;font:400 14.5px/1.55 var(--sans);color:var(--ink)}
 .why b{font-weight:600}
 .why .hand{font-size:21px;display:block;line-height:1;margin-bottom:4px}
 @media (max-width:960px){
-  .scrolly{grid-template-columns:1fr;gap:0}
-  .stage-wrap{top:62px;height:58vh;min-height:0;z-index:2}
-  .steps{position:relative;z-index:3;margin-top:-10vh}
-  .step{min-height:95vh;align-items:flex-end;padding-bottom:6vh}
-  .step .card{opacity:1}
+  .story{--step-len:40vh}
+  .story-pin{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:10px;padding-block:8px}
+  .story-side{gap:8px}
+  .step .card{padding:14px 16px 12px}
+  .why{font-size:13px;padding:9px 11px}
+  .why .hand{font-size:18px}
+  .step .card h3{font-size:21px;margin:4px 0 6px}
+  .step .card p{font-size:14.5px;margin-bottom:8px}
+  .story-nav .dot{width:26px;height:26px;font-size:11px}
+  .story-nav .hint{display:none}
 }
 
 /* the question bar */
@@ -326,7 +342,7 @@ footer a{color:var(--ink-2)}
       <h2 id="inside-h">Follow one question through the system.</h2>
       <p>Scroll. The same real clause goes through every stage, and each stage says what was chosen, what it was chosen over, and the number that decided it.</p>
     </div>
-    <div class="scrolly">
+    <div class="story" id="story"><div class="story-pin">
       <div class="stage-wrap" aria-hidden="true">
         <div class="stage" id="stage" data-step="0">
           <div class="qbar"><span class="qlabel">Q</span><span id="qText"></span></div>
@@ -334,14 +350,14 @@ footer a{color:var(--ink-2)}
           <div class="paper doc">
             <div class="frame"></div>
             <span class="blocktag" id="blockTag"></span>
-            <div class="run"><span>Master Services Agreement · § 4 Term and Termination</span><span id="docRun">chars</span></div>
+            <div class="run"><span>Master Services Agreement · § 4 Term and Termination</span><span id="stepCount"></span><span id="docRun">chars</span></div>
             <div class="text" id="docText"></div>
             <div class="stamp">CORRECT<small>checked by gemma4:12b</small></div>
           </div>
           <div class="pane-area" id="panes"></div>
         </div>
       </div>
-      <div class="steps" id="steps">
+      <div class="story-side"><div class="steps" id="steps">
         <div class="step" data-step="1"><div class="card">
           <span class="label">§ 1 · Parse</span><h3>A PDF is a drawing, not a document.</h3>
           <p>A PDF only knows where to paint each letter. The parser reads the layout instead: headings from font size and weight, tables kept as tables. Every block keeps its exact character offsets, so any answer can point back to its place on the page.</p>
@@ -388,7 +404,9 @@ footer a{color:var(--ink-2)}
           <div class="why"><span class="hand">what it showed</span><b>62%</b> of failures happen before the model sees the evidence, mostly two-part questions where only one half's clause is found. That's the next thing to fix, not the model.</div>
         </div></div>
       </div>
-    </div>
+      <nav class="story-nav" id="storyNav" aria-label="Jump to a step"></nav>
+      </div>
+    </div></div>
   </div>
 </section>
 
@@ -567,60 +585,34 @@ function setStep(step) {
   const stage = $("#stage");
   stage.dataset.step = step;
   const i = ORDER.indexOf(step);
+  $("#stepCount").textContent = `step ${i} of ${ORDER.length - 1}`;
   ["3", "5"].forEach(s => stage.classList.toggle("after-" + s, i >= ORDER.indexOf(s)));
   $$(".pane").forEach(p => p.classList.toggle("on", p.dataset.pane === step));
   $$(".step").forEach(s => s.classList.toggle("active", s.dataset.step === step));
+  $$("#storyNav .dot").forEach((d, j) => d.setAttribute("aria-current", ORDER[j + 1] === step ? "step" : "false"));
   if (step === "4") $$(".rank .bar i").forEach(b => { b.style.width = b.dataset.w + "%"; });
 }
-const stepObs = new IntersectionObserver(entries => {
-  entries.forEach(e => { if (e.isIntersecting) setStep(e.target.dataset.step); });
-}, {rootMargin: "-45% 0px -45% 0px"});
-$$(".step").forEach(s => stepObs.observe(s));
-setStep("1");
-
-/* mouse wheel: one gesture = one step while the story is pinned; inertia during the move is ignored so a
-   flick can't skip steps; past either end the page moves on instead of scrolling through dead space */
-(() => {
-  const steps = $$(".step"), scrolly = $(".scrolly"), navH = () => $(".nav").offsetHeight;
-  let busy = false, acc = 0, idleTimer = 0, startedAt = 0, lastEvent = 0;
-  const MIN_MS = reduce ? 120 : 600, QUIET_MS = 200;
-  // free the wheel only once the glide has had its time AND the gesture has stopped: a trackpad keeps
-  // sending decaying momentum events for about a second, and each of them must not count as a new step
-  function release() {
-    const wait = Math.max(startedAt + MIN_MS, lastEvent + QUIET_MS) - performance.now();
-    if (wait <= 0) { busy = false; acc = 0; } else setTimeout(release, wait + 5);
-  }
-  function glide(y) { scrollTo({top: y, behavior: reduce ? "auto" : "smooth"}); }
-  function goStep(i) {
-    const r = steps[i].getBoundingClientRect();
-    setStep(steps[i].dataset.step);
-    glide(scrollY + r.top + r.height / 2 - (innerHeight + navH()) / 2);
-  }
-  addEventListener("wheel", e => {
-    if (e.ctrlKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX) || innerWidth <= 960) return;
-    const box = scrolly.getBoundingClientRect(), mid = innerHeight / 2;
-    if (box.top > mid || box.bottom < mid) return;  // the story isn't pinned: scroll normally
-    const i = steps.findIndex(s => s.classList.contains("active")), dir = Math.sign(e.deltaY);
-    if (i < 0) return;
-    e.preventDefault();
-    lastEvent = performance.now();
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { acc = 0; }, 180);
-    if (busy) return;  // swallow momentum while gliding
-    acc += e.deltaY;
-    if (Math.abs(acc) < 40) return;  // one mouse notch is ~100; a trackpad needs a deliberate swipe
-    busy = true;
-    if (dir > 0 && i === steps.length - 1) {
-      glide($("#decisions").getBoundingClientRect().top + scrollY - navH() - 12);  // on to the next section
-    } else if (dir < 0 && i === 0) {
-      glide($("#inside").getBoundingClientRect().top + scrollY - navH() - 12);  // back to the section head
-    } else {
-      goStep(i + dir);
-    }
-    startedAt = performance.now();
-    setTimeout(release, MIN_MS);
-  }, {passive: false});
-})();
+// the story follows the page's own scroll: one step per --step-len of scrolling, checked once per frame
+const story = $("#story"), stepEls = $$(".step"), N = stepEls.length;
+const navH = () => $(".nav").offsetHeight;
+const travel = () => Math.max(1, story.offsetHeight - (innerHeight - navH()));
+const storyTop = () => story.getBoundingClientRect().top + scrollY - navH();
+let shown = -1, queued = false;
+function syncStep() {
+  queued = false;
+  const seg = travel() / (N - 0.5);  // matches the track: the last step has half a segment
+  const i = Math.min(N - 1, Math.max(0, Math.floor((scrollY - storyTop()) / seg)));
+  if (i !== shown) { shown = i; setStep(stepEls[i].dataset.step); }
+}
+addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(syncStep); } }, {passive: true});
+addEventListener("resize", syncStep);
+$("#storyNav").innerHTML = stepEls.map((s, i) =>
+  `<button class="dot" type="button" data-i="${i}" aria-label="${esc(s.querySelector(".label").textContent)}">${esc(s.dataset.step)}</button>`
+).join("") + `<span class="hint">scroll, or pick a step</span>`;
+$$("#storyNav .dot").forEach(b => b.addEventListener("click", () => {
+  scrollTo({top: storyTop() + (+b.dataset.i + 0.25) * travel() / (N - 0.5), behavior: reduce ? "auto" : "smooth"});
+}));
+syncStep();
 
 /* ---------- decisions ---------- */
 const DECISIONS = [
