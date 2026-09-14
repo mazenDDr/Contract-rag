@@ -45,7 +45,7 @@ short_description: Ask a contract, get the clause, with citations.
 # contract-rag
 
 Ask a question about one of 100 real commercial contracts. The answer cites the excerpts it came from,
-or says the contract doesn't cover the question. Everything runs in this container on the free CPU tier:
+or says the contract doesn't cover the question. Everything runs in this container on CPU:
 BM25 search inside the chosen contract, then `qwen3.5:4b` through Ollama. **An answer takes about two to
 three minutes** because there is no GPU; on a laptop GPU it takes about ten seconds.
 

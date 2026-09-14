@@ -14,7 +14,7 @@
   &nbsp;·&nbsp;
   <a href="https://mazenddr.github.io/Contract-rag/tour/"><b>The tour</b></a> (one question, start to finish)
   &nbsp;·&nbsp;
-  <a href="https://huggingface.co/spaces/mazenDDr/contract-rag"><b>Live demo</b></a>
+  <a href="https://mazenddr.github.io/Contract-rag/demo/"><b>Try it</b></a> (70 recorded answers, graded)
 </p>
 
 ---
@@ -81,19 +81,23 @@ The first surprise was the grader itself. It faulted true details found elsewher
 
 ## Try it
 
-**Online:** the [live demo](https://huggingface.co/spaces/mazenDDr/contract-rag) runs everything in one container on Hugging Face's free CPU tier, so an answer takes about 2–3 minutes. The API is at `/api/docs` on the same Space. [Why the 4B model, and not a faster smaller one](docs/deployment.md): the 2B cited its sources only 14% of the time.
+**Online, instantly:** [recorded answers](https://mazenddr.github.io/Contract-rag/demo/). Pick any of the 70 test questions to see exactly what the system answered during the evaluation: its citations with the matched sentence highlighted, its grade, each statement's check and, for the failures, where it went wrong. Nothing runs a model, so it's free and instant.
 
-**The API:**
+**Live, on your machine:** the all-in-one image carries the model, the API and the page. Build the data first ([below](#run-it-yourself)), then:
 
 ```bash
-curl -s https://mazenddr-contract-rag.hf.space/api/health
-curl -s -H "X-API-Key: $APP_API_KEY" -H "Content-Type: application/json" \
-     https://mazenddr-contract-rag.hf.space/api/ask \
+PYTHONPATH=src .venv/bin/python scripts/push_space.py     # assembles build/space/
+docker build -t contract-rag-space build/space
+docker run -p 7860:7860 -e APP_API_KEY=choose-a-key contract-rag-space
+# the page: http://localhost:7860    the API docs: http://localhost:7860/api/docs
+
+curl -s -H "X-API-Key: choose-a-key" -H "Content-Type: application/json" \
+     http://localhost:7860/api/ask \
      -d '{"doc_id": "kubient-inc-07-02-2020-ex-10-14-master-services-agreement-part1",
           "question": "Can a party end the agreement early without cause, and on what notice?"}'
 ```
 
-The response includes the answer, `abstained`, each citation's page, section and text, token counts, and the search/answer time split. See [`docs/api.md`](docs/api.md).
+In a container the model runs on CPU, which takes 45 s to 3 minutes per answer depending on the cores; with Ollama on a laptop GPU it takes about 10 s. The response includes the answer, `abstained`, each citation's page, section and text, token counts, and the search/answer time split ([`docs/api.md`](docs/api.md)). [Why the 4B model and not a faster, smaller one](docs/deployment.md): the 2B cited its sources only 14% of the time.
 
 ## Run it yourself
 
@@ -135,8 +139,8 @@ ui/               Streamlit page
 configs/          every setting, in YAML
 data/eval/        the committed exam, grader labels and hand-review labels
 runs/*/           the committed reports and summaries behind every number here
-deploy/space/     the Hugging Face Space image
-site/             the field guide and the tour (GitHub Pages)
+deploy/space/     the all-in-one image: model + API + page
+site/             the field guide, the tour and the recorded answers (GitHub Pages)
 ```
 
 A map of every file with what it does is in the [field guide](https://mazenddr.github.io/Contract-rag/#a-tree).
@@ -157,7 +161,7 @@ This project answers questions about one named contract at a time, over 100 cont
 
 ## Built with
 
-PyMuPDF · tiktoken · NLTK · bm25s + PyStemmer · sentence-transformers (bge, e5) · Qdrant · cross-encoders · Ollama (`qwen3.5:4b`, `gemma4:12b`) · FastAPI · Streamlit · Docker · Hugging Face Spaces
+PyMuPDF · tiktoken · NLTK · bm25s + PyStemmer · sentence-transformers (bge, e5) · Qdrant · cross-encoders · Ollama (`qwen3.5:4b`, `gemma4:12b`) · FastAPI · Streamlit · Docker
 
 ## Data
 
