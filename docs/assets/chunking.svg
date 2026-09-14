@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 262" width="880" height="262" role="img" aria-label="The same 1,340-character passage cut three ways. Fixed 512-token chunks overlap, and the clause falls in the overlap, so both chunks hold it. Section chunking keeps all of section 4 in one chunk. Sentence chunking makes the clause exactly one sentence. Search recall at 8: fixed 0.85, section 0.74, sentence window 0.58.">
+  <title>One passage, three knives</title>
+  <defs>
+    <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="10" height="10" fill="#D6ECEB"/><rect width="5" height="10" fill="#F4D5D6"/>
+    </pattern>
+  </defs>
+  <style>
+    .bg{fill:#E9E8E3}
+    .lab{font:600 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A;letter-spacing:.08em}
+    .name{font:600 14px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .stat{font:400 11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#465063}
+    .note{font:italic 400 12px Georgia,'Times New Roman',serif;fill:#465063}
+    .track{fill:#FFFFFF;stroke:#D8D6CE}
+    .c1{fill:#BFE3E1}.c2{fill:#F4D5D6}.c3{fill:#0E7C7B;opacity:.55}
+    .ev{fill:#FFE36A;opacity:.85}
+    .evl{font:600 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#8A6A00;letter-spacing:.04em}
+    .cut{stroke:#C0272D;stroke-width:2.2}
+    .sc{font:700 13px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#C0272D}
+    .r{font:700 20px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#0E7C7B}
+    .row{transform-box:view-box}
+    @keyframes rowin{0%{opacity:0;transform:translateX(-14px)}100%{opacity:1;transform:none}}
+    @keyframes rowcycle1{0%,4%{opacity:0}10%,100%{opacity:1}}
+    @keyframes rowcycle2{0%,22%{opacity:0}28%,100%{opacity:1}}
+    @keyframes rowcycle3{0%,40%{opacity:0}46%,100%{opacity:1}}
+    @keyframes drop1{0%,10%{opacity:0;transform:translateY(-16px)}15%,100%{opacity:1;transform:none}}
+    @keyframes drop2{0%,28%{opacity:0;transform:translateY(-16px)}33%,100%{opacity:1;transform:none}}
+    @keyframes drop3{0%,46%{opacity:0;transform:translateY(-16px)}52%,100%{opacity:1;transform:none}}
+    @keyframes pulse{0%,55%,100%{opacity:.85}62%{opacity:.35}69%{opacity:.85}76%{opacity:.35}83%{opacity:.85}}
+    .r1{animation:rowcycle1 11s infinite}.r2{animation:rowcycle2 11s infinite}.r3{animation:rowcycle3 11s infinite}
+    .k1{animation:drop1 11s infinite}.k2{animation:drop2 11s infinite}.k3{animation:drop3 11s infinite}
+    .ev{animation:pulse 11s infinite}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  </style>
+  <rect class="bg" width="880" height="262" rx="14"/>
+  <text class="lab" x="24" y="32">ONE PASSAGE OF THE KUBIENT CONTRACT, CUT THREE WAYS</text>
+  <text class="lab" x="790" y="32">SEARCH R@8</text>
+
+  <!-- the clause: chars 4,324–4,464 of a 1,340-char window starting at 3,624 -->
+  <rect class="ev" x="521" y="46" width="55" height="196" rx="2"/>
+  <text class="evl" x="548" y="58" text-anchor="middle">CLAUSE</text>
+
+  <g class="r1">
+    <text class="name" x="24" y="82">Fixed 512 / 64</text>
+    <text class="stat" x="24" y="99">2,166 chunks</text>
+    <rect class="track" x="250" y="66" width="520" height="28" rx="4"/>
+    <rect class="c1" x="250" y="66" width="391" height="28" rx="4"/>
+    <rect class="c2" x="509" y="66" width="261" height="28" rx="4"/>
+    <rect fill="url(#hatch)" x="509" y="66" width="132" height="28"/>
+    <rect class="ev" x="521" y="66" width="55" height="28" style="animation:none;opacity:.55"/>
+    <text class="note" x="250" y="114">the clause sits in the 64-token overlap, so both chunks hold it</text>
+    <text class="r" x="790" y="88">0.85</text>
+  </g>
+  <g class="k1"><line class="cut" x1="509" y1="60" x2="509" y2="100"/><line class="cut" x1="641" y1="60" x2="641" y2="100"/><text class="sc" x="503" y="58">✂</text><text class="sc" x="635" y="58">✂</text></g>
+
+  <g class="r2">
+    <text class="name" x="24" y="152">Section</text>
+    <text class="stat" x="24" y="169">5,578 chunks</text>
+    <rect class="track" x="250" y="136" width="520" height="28" rx="4"/>
+    <rect class="c1" x="250" y="136" width="520" height="28" rx="4"/>
+    <rect class="ev" x="521" y="136" width="55" height="28" style="animation:none;opacity:.55"/>
+    <text class="note" x="250" y="184">all of section 4 fits in one chunk: no cut near the clause</text>
+    <text class="r" x="790" y="158">0.74</text>
+  </g>
+  <g class="k2"><line class="cut" x1="250" y1="130" x2="250" y2="170"/><line class="cut" x1="770" y1="130" x2="770" y2="170"/></g>
+
+  <g class="r3">
+    <text class="name" x="24" y="222">Sentence window</text>
+    <text class="stat" x="24" y="239">20,898 chunks</text>
+    <rect class="track" x="250" y="206" width="520" height="28" rx="4"/>
+    <rect class="c1" x="250" y="206" width="18" height="28"/>
+    <rect class="c2" x="268" y="206" width="74" height="28"/>
+    <rect class="c1" x="342" y="206" width="9" height="28"/>
+    <rect class="c2" x="351" y="206" width="41" height="28"/>
+    <rect class="c1" x="392" y="206" width="83" height="28"/>
+    <rect class="c2" x="475" y="206" width="46" height="28"/>
+    <rect class="c3" x="521" y="206" width="55" height="28"/>
+    <rect class="c2" x="576" y="206" width="172" height="28"/>
+    <rect class="c1" x="748" y="206" width="22" height="28"/>
+    <text class="note" x="250" y="254">the clause is exactly one sentence, shown to the model with ±3 around it</text>
+    <text class="r" x="790" y="228">0.58</text>
+  </g>
+  <g class="k3" stroke="#C0272D">
+    <line class="cut" x1="268" y1="200" x2="268" y2="240"/><line class="cut" x1="342" y1="200" x2="342" y2="240"/>
+    <line class="cut" x1="351" y1="200" x2="351" y2="240"/><line class="cut" x1="392" y1="200" x2="392" y2="240"/>
+    <line class="cut" x1="475" y1="200" x2="475" y2="240"/><line class="cut" x1="521" y1="200" x2="521" y2="240"/>
+    <line class="cut" x1="576" y1="200" x2="576" y2="240"/><line class="cut" x1="748" y1="200" x2="748" y2="240"/>
+  </g>
+</svg>

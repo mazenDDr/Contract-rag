@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" width="880" height="300" role="img" aria-label="What each search component changes, as the difference in test MRR with 95% intervals on fixed chunks: embeddings instead of BM25 minus 0.243; BM25 plus embeddings minus 0.020, not significant; adding the MiniLM reranker plus 0.006, not significant; adding the bge reranker minus 0.148; dropping the contract's name from the query plus 0.396.">
+  <title>What each search component changes</title>
+  <style>
+    .bg{fill:#E9E8E3}
+    .lab{font:600 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A;letter-spacing:.08em}
+    .big{font:500 16px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .big b,.hi{font-weight:700;fill:#0E7C7B}
+    .row{font:400 13px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .v{font:600 12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#1A2233}
+    .ns{font:400 11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A}
+    .zero{stroke:#465063;stroke-width:1.2}
+    .grid{stroke:#D8D6CE;stroke-width:1}
+    .tick{font:400 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A}
+    .pos{fill:#0E7C7B}.neg{fill:#C0272D}
+    .bar{transform-box:fill-box}
+    .pos.bar{transform-origin:left center}.neg.bar{transform-origin:right center}
+    .wh{stroke:#1A2233;stroke-width:1.6}
+    @keyframes grow{0%,6%{transform:scaleX(0)}22%,100%{transform:scaleX(1)}}
+    @keyframes fade{0%,22%{opacity:0}30%,100%{opacity:1}}
+    .bar{animation:grow 9s cubic-bezier(.2,.7,.2,1) infinite}
+    .wh,.v,.ns{animation:fade 9s infinite}
+    .d1{animation-delay:0s}.d2{animation-delay:.15s}.d3{animation-delay:.3s}.d4{animation-delay:.45s}.d5{animation-delay:.6s}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  </style>
+  <rect class="bg" width="880" height="300" rx="14"/>
+  <text class="lab" x="24" y="32">189 SEARCH SETUPS · SCORED IN 16 MINUTES · PICKED ON DEV, REPORTED ON TEST</text>
+  <text class="big" x="24" y="58">Winner: fixed chunks + BM25 inside the contract. <tspan class="hi">Recall@8 0.85 · MRR 0.73</tspan></text>
+  <text class="lab" x="24" y="94">WHAT EACH COMPONENT CHANGES · TEST MRR, FIXED CHUNKS, 95% INTERVAL</text>
+
+  <!-- x(v) = 556 + 440 v -->
+  <g>
+    <line class="grid" x1="380" y1="106" x2="380" y2="262"/><line class="grid" x1="468" y1="106" x2="468" y2="262"/>
+    <line class="grid" x1="644" y1="106" x2="644" y2="262"/><line class="grid" x1="732" y1="106" x2="732" y2="262"/>
+    <line class="grid" x1="820" y1="106" x2="820" y2="262"/>
+    <line class="zero" x1="556" y1="104" x2="556" y2="264"/>
+    <text class="tick" x="380" y="280" text-anchor="middle">−0.4</text><text class="tick" x="468" y="280" text-anchor="middle">−0.2</text>
+    <text class="tick" x="556" y="280" text-anchor="middle">0</text><text class="tick" x="644" y="280" text-anchor="middle">+0.2</text>
+    <text class="tick" x="732" y="280" text-anchor="middle">+0.4</text><text class="tick" x="820" y="280" text-anchor="middle">+0.6</text>
+  </g>
+
+  <text class="row" x="364" y="126" text-anchor="end">Embeddings instead of BM25</text>
+  <rect class="bar neg d1" x="449" y="115" width="107" height="14" rx="2"/>
+  <line class="wh d1" x1="408" y1="122" x2="490" y2="122"/>
+  <text class="v d1" x="846" y="126" text-anchor="end">−0.243</text>
+
+  <text class="row" x="364" y="158" text-anchor="end">BM25 + embeddings (hybrid)</text>
+  <rect class="bar neg d2" x="547" y="147" width="9" height="14" rx="2"/>
+  <line class="wh d2" x1="536" y1="154" x2="558" y2="154"/>
+  <text class="v d2" x="846" y="158" text-anchor="end">−0.020</text>
+  <text class="ns d2" x="580" y="158">not significant</text>
+
+  <text class="row" x="364" y="190" text-anchor="end">+ MiniLM reranker</text>
+  <rect class="bar pos d3" x="556" y="179" width="3" height="14" rx="1"/>
+  <line class="wh d3" x1="523" y1="186" x2="595" y2="186"/>
+  <text class="v d3" x="846" y="190" text-anchor="end">+0.006</text>
+  <text class="ns d3" x="606" y="190">not significant</text>
+
+  <text class="row" x="364" y="222" text-anchor="end">+ bge-reranker-base (~1 s / question)</text>
+  <rect class="bar neg d4" x="491" y="211" width="65" height="14" rx="2"/>
+  <line class="wh d4" x1="448" y1="218" x2="530" y2="218"/>
+  <text class="v d4" x="846" y="222" text-anchor="end">−0.148</text>
+
+  <text class="row" x="364" y="254" text-anchor="end">Drop the contract’s name from the query</text>
+  <rect class="bar pos d5" x="556" y="243" width="174" height="14" rx="2"/>
+  <line class="wh d5" x1="682" y1="250" x2="776" y2="250"/>
+  <text class="v d5" x="846" y="254" text-anchor="end">+0.396</text>
+</svg>
