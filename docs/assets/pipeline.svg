@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 230" width="880" height="230" role="img" aria-label="The pipeline, left to right: parse 100 PDFs, chunk three ways, search with BM25 inside the contract, answer with a local 4B model that cites excerpts, grade each statement with a 12B model, and diagnose every failure. Each stage writes a file.">
+  <title>One question, end to end</title>
+  <style>
+    .bg{fill:#E9E8E3}
+    .lab{font:600 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A;letter-spacing:.08em}
+    .rail{stroke:#737B8A;stroke-width:1.5;stroke-dasharray:5 5}
+    .box{fill:#FFFFFF;stroke:#D8D6CE;stroke-width:1.2}
+    .t{font:600 15px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .n{font:500 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#C0272D}
+    .d{font:400 11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#465063}
+    .f{font:400 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A}
+    .dot{fill:#C0272D}
+    @keyframes travel{0%{transform:translateX(0)}88%,100%{transform:translateX(710px)}}
+    .runner{animation:travel 8s linear infinite}
+    @keyframes lit0{0%,1%{fill:#FFFFFF}3%,92%{fill:#FFE36A}96%,100%{fill:#FFFFFF}}
+    @keyframes lit1{0%,18%{fill:#FFFFFF}20%,92%{fill:#FFE36A}96%,100%{fill:#FFFFFF}}
+    @keyframes lit2{0%,35%{fill:#FFFFFF}37%,92%{fill:#FFE36A}96%,100%{fill:#FFFFFF}}
+    @keyframes lit3{0%,53%{fill:#FFFFFF}55%,92%{fill:#FFE36A}96%,100%{fill:#FFFFFF}}
+    @keyframes lit4{0%,70%{fill:#FFFFFF}72%,92%{fill:#FFE36A}96%,100%{fill:#FFFFFF}}
+    @keyframes lit5{0%,86%{fill:#FFFFFF}88%,92%{fill:#FFE36A}96%,100%{fill:#FFFFFF}}
+    .b0{animation:lit0 8s infinite}.b1{animation:lit1 8s infinite}.b2{animation:lit2 8s infinite}
+    .b3{animation:lit3 8s infinite}.b4{animation:lit4 8s infinite}.b5{animation:lit5 8s infinite}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}.runner{display:none}}
+  </style>
+  <rect class="bg" width="880" height="230" rx="14"/>
+  <text class="lab" x="24" y="34">ONE QUESTION, END TO END · EVERY STAGE WRITES A FILE THE NEXT ONE READS</text>
+  <line class="rail" x1="85" y1="108" x2="795" y2="108"/>
+
+  <rect class="box b0" x="24" y="60" width="122" height="96" rx="9"/>
+  <text class="n" x="36" y="80">01</text><text class="t" x="36" y="100">Parse</text>
+  <text class="d" x="36" y="122">PyMuPDF layout</text><text class="d" x="36" y="139">1,580 pages</text>
+
+  <rect class="box b1" x="166" y="60" width="122" height="96" rx="9"/>
+  <text class="n" x="178" y="80">02</text><text class="t" x="178" y="100">Chunk</text>
+  <text class="d" x="178" y="122">three ways</text><text class="d" x="178" y="139">28,642 chunks</text>
+
+  <rect class="box b2" x="308" y="60" width="122" height="96" rx="9"/>
+  <text class="n" x="320" y="80">03</text><text class="t" x="320" y="100">Search</text>
+  <text class="d" x="320" y="122">BM25, inside</text><text class="d" x="320" y="139">the contract</text>
+
+  <rect class="box b3" x="450" y="60" width="122" height="96" rx="9"/>
+  <text class="n" x="462" y="80">04</text><text class="t" x="462" y="100">Answer</text>
+  <text class="d" x="462" y="122">qwen3.5:4b</text><text class="d" x="462" y="139">cites [n]</text>
+
+  <rect class="box b4" x="592" y="60" width="122" height="96" rx="9"/>
+  <text class="n" x="604" y="80">05</text><text class="t" x="604" y="100">Grade</text>
+  <text class="d" x="604" y="122">gemma4:12b</text><text class="d" x="604" y="139">claim by claim</text>
+
+  <rect class="box b5" x="734" y="60" width="122" height="96" rx="9"/>
+  <text class="n" x="746" y="80">06</text><text class="t" x="746" y="100">Diagnose</text>
+  <text class="d" x="746" y="122">first failing</text><text class="d" x="746" y="139">stage traced</text>
+
+  <line x1="85" y1="176" x2="795" y2="176" stroke="#D8D6CE" stroke-width="1"/>
+  <g class="runner"><circle class="dot" cx="85" cy="176" r="6"/></g>
+
+  <text class="f" x="85" y="206" text-anchor="middle">documents.jsonl</text>
+  <text class="f" x="227" y="206" text-anchor="middle">chunks/*.jsonl</text>
+  <text class="f" x="369" y="206" text-anchor="middle">retrieval.jsonl</text>
+  <text class="f" x="511" y="206" text-anchor="middle">generation.jsonl</text>
+  <text class="f" x="653" y="206" text-anchor="middle">scores.jsonl</text>
+  <text class="f" x="795" y="206" text-anchor="middle">failure report</text>
+</svg>

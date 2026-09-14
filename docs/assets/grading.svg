@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 372" width="880" height="372" role="img" aria-label="A real answer graded statement by statement. Statement one cites excerpt 2, the preamble, which does not contain the assignment rule: not supported. Statement two cites excerpt 3, which states the change-of-control termination right: supported. Faithfulness 0.50, citation validity 1.00, correctness: correct.">
+  <title>One answer, checked statement by statement</title>
+  <style>
+    .bg{fill:#E9E8E3}
+    .lab{font:600 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A;letter-spacing:.08em}
+    .q{font:400 13px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#465063}
+    .card{fill:#FFFFFF;stroke:#D8D6CE}
+    .st{font:500 13px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .cite{font:700 12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#0E7C7B}
+    .ex{fill:#F7F6F2;stroke:#E7E5DE}
+    .ext{font:italic 400 12px Georgia,'Times New Roman',serif;fill:#465063}
+    .exl{font:600 10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A;letter-spacing:.05em}
+    .no{font:700 13px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#C0272D}
+    .yes{font:700 13px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#2E7D4F}
+    .arrow{fill:none;stroke:#737B8A;stroke-width:1.5;stroke-dasharray:60;stroke-dashoffset:0}
+    .chip{stroke-width:1.2}
+    .chipt{font:600 12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .cap{font:italic 400 13px Georgia,'Times New Roman',serif;fill:#465063}
+    @keyframes in1{0%,3%{opacity:0;transform:translateY(8px)}9%,100%{opacity:1;transform:none}}
+    @keyframes ar1{0%,10%{stroke-dashoffset:60}15%,100%{stroke-dashoffset:0}}
+    @keyframes ex1{0%,14%{opacity:0}19%,100%{opacity:1}}
+    @keyframes vd1{0%,22%{opacity:0}26%,100%{opacity:1}}
+    @keyframes in2{0%,30%{opacity:0;transform:translateY(8px)}36%,100%{opacity:1;transform:none}}
+    @keyframes ar2{0%,37%{stroke-dashoffset:60}42%,100%{stroke-dashoffset:0}}
+    @keyframes ex2{0%,41%{opacity:0}46%,100%{opacity:1}}
+    @keyframes vd2{0%,49%{opacity:0}53%,100%{opacity:1}}
+    @keyframes sc{0%,58%{opacity:0}64%,100%{opacity:1}}
+    .s1{animation:in1 12s infinite}.a1{animation:ar1 12s infinite}.e1{animation:ex1 12s infinite}.v1{animation:vd1 12s infinite}
+    .s2{animation:in2 12s infinite}.a2{animation:ar2 12s infinite}.e2{animation:ex2 12s infinite}.v2{animation:vd2 12s infinite}
+    .scores{animation:sc 12s infinite}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  </style>
+  <rect class="bg" width="880" height="372" rx="14"/>
+  <text class="lab" x="24" y="32">ONE REAL ANSWER, CHECKED STATEMENT BY STATEMENT · QUESTION Q0031</text>
+  <text class="q" x="24" y="56">Q: Under the Agency Agreement between Biopure Corporation and Agent, what limits apply to assigning</text>
+  <text class="q" x="24" y="74">the agreement, including when a party changes control?</text>
+
+  <g class="s1">
+    <rect class="card" x="24" y="92" width="410" height="98" rx="8"/>
+    <text class="lab" x="38" y="112">STATEMENT 1</text>
+    <text class="st" x="38" y="134">Neither party may assign or transfer rights or</text>
+    <text class="st" x="38" y="153">obligations without the express prior written</text>
+    <text class="st" x="38" y="172">consent of the other party <tspan class="cite">[2]</tspan></text>
+  </g>
+  <path class="arrow a1" d="M436 141 H 472"/><path d="M466 136 L474 141 L466 146" fill="none" stroke="#737B8A" stroke-width="1.5" class="e1"/>
+  <g class="e1">
+    <rect class="ex" x="480" y="92" width="376" height="68" rx="8"/>
+    <text class="exl" x="494" y="111">EXCERPT [2] · PAGE 1 · THE PREAMBLE</text>
+    <text class="ext" x="494" y="131">“This ‘Agency’ Agreement is made as of March 29, 1999,</text>
+    <text class="ext" x="494" y="149">by and between Biopure Corporation, a Delaware…”</text>
+  </g>
+  <text class="no v1" x="494" y="182">✗ not supported: [2] doesn’t contain this rule</text>
+
+  <g class="s2">
+    <rect class="card" x="24" y="202" width="410" height="116" rx="8"/>
+    <text class="lab" x="38" y="222">STATEMENT 2</text>
+    <text class="st" x="38" y="244">If there is a material change in the organization,</text>
+    <text class="st" x="38" y="263">ownership, management, or control of the Agent’s</text>
+    <text class="st" x="38" y="282">business, the Company may terminate the</text>
+    <text class="st" x="38" y="301">Agreement upon giving written notice <tspan class="cite">[3]</tspan></text>
+  </g>
+  <path class="arrow a2" d="M436 256 H 472"/><path d="M466 251 L474 256 L466 261" fill="none" stroke="#737B8A" stroke-width="1.5" class="e2"/>
+  <g class="e2">
+    <rect class="ex" x="480" y="202" width="376" height="86" rx="8"/>
+    <text class="exl" x="494" y="221">EXCERPT [3] · PAGES 5–6 · 4. TERM AND TERMINATION</text>
+    <text class="ext" x="494" y="241">“(b) In the event of any material change in the</text>
+    <text class="ext" x="494" y="259">organization, ownership, management or control of the</text>
+    <text class="ext" x="494" y="277">business of the Agent, the Company may, at its option…”</text>
+  </g>
+  <text class="yes v2" x="494" y="310">✓ supported by its own excerpt</text>
+
+  <g class="scores">
+    <rect class="chip" x="24" y="330" width="170" height="28" rx="6" fill="#F7DEDF" stroke="#C0272D"/>
+    <text class="chipt" x="36" y="349" fill="#C0272D">faithfulness 0.50</text>
+    <rect class="chip" x="204" y="330" width="196" height="28" rx="6" fill="#FFFFFF" stroke="#D8D6CE"/>
+    <text class="chipt" x="216" y="349" fill="#1A2233">citation validity 1.00</text>
+    <rect class="chip" x="410" y="330" width="224" height="28" rx="6" fill="#DFF0E4" stroke="#2E7D4F"/>
+    <text class="chipt" x="422" y="349" fill="#2E7D4F">correctness: correct 1.0</text>
+    <text class="cap" x="648" y="342">Right answer, wrong citation:</text>
+    <text class="cap" x="648" y="359">so the two are scored apart.</text>
+  </g>
+</svg>

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 360" width="880" height="360" role="img" aria-label="Where 185 failed answers went wrong, by the first stage that failed, with the first grading's counts as dashed outlines: partial evidence 68 (was 90), ranking miss 40 (41), unsupported claims 33 (47), misread evidence 25 (69), answered unanswerable 8 (19), refused with evidence 4 (9), retrieval miss 4 (4), reranker demotion 3 (3), lost in chunking 0 (0). 62% of failures happen in retrieval.">
+  <title>Why answers fail</title>
+  <style>
+    .bg{fill:#E9E8E3}
+    .lab{font:600 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A;letter-spacing:.08em}
+    .big{font:500 16px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .hi{font-weight:700;fill:#C0272D}
+    .row{font:400 13px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .v{font:600 12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#1A2233}
+    .was{font:400 11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A}
+    .track{fill:#F7F6F2}
+    .ghost{fill:none;stroke:#737B8A;stroke-width:1.2;stroke-dasharray:4 3}
+    .r{fill:#0E7C7B}.g{fill:#C0272D}
+    .bar{transform-box:fill-box;transform-origin:left center}
+    .leg{font:400 12px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#465063}
+    @keyframes ghost{0%,4%{opacity:0}12%,100%{opacity:1}}
+    @keyframes grow{0%,14%{transform:scaleX(0)}34%,100%{transform:scaleX(1)}}
+    @keyframes fade{0%,30%{opacity:0}38%,100%{opacity:1}}
+    .ghost{animation:ghost 10s infinite}
+    .bar{animation:grow 10s cubic-bezier(.2,.7,.2,1) infinite}
+    .v{animation:fade 10s infinite}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  </style>
+  <rect class="bg" width="880" height="360" rx="14"/>
+  <text class="lab" x="24" y="32">185 FAILED ANSWERS, EACH TRACED TO THE FIRST STAGE THAT WENT WRONG</text>
+  <text class="big" x="24" y="58">Fixing the grader cut failures from 282 to 185. Of the rest, <tspan class="hi">62% happen before the model sees the evidence.</tspan></text>
+
+  <!-- scale: 5.4 px per failure, bars from x=260 -->
+  <g>
+    <text class="row" x="244" y="98" text-anchor="end">partial evidence</text>
+    <rect class="track" x="260" y="86" width="486" height="16" rx="3"/><rect class="bar r" x="260" y="86" width="367" height="16" rx="3"/><rect class="ghost" x="260" y="86" width="486" height="16" rx="3"/>
+    <text class="v" x="758" y="98">68</text><text class="was" x="790" y="98">was 90</text>
+
+    <text class="row" x="244" y="124" text-anchor="end">ranking miss</text>
+    <rect class="track" x="260" y="112" width="486" height="16" rx="3"/><rect class="bar r" x="260" y="112" width="216" height="16" rx="3"/><rect class="ghost" x="260" y="112" width="221" height="16" rx="3"/>
+    <text class="v" x="758" y="124">40</text><text class="was" x="790" y="124">was 41</text>
+
+    <text class="row" x="244" y="150" text-anchor="end">unsupported claims</text>
+    <rect class="track" x="260" y="138" width="486" height="16" rx="3"/><rect class="bar g" x="260" y="138" width="178" height="16" rx="3"/><rect class="ghost" x="260" y="138" width="254" height="16" rx="3"/>
+    <text class="v" x="758" y="150">33</text><text class="was" x="790" y="150">was 47</text>
+
+    <text class="row" x="244" y="176" text-anchor="end">misread evidence</text>
+    <rect class="track" x="260" y="164" width="486" height="16" rx="3"/><rect class="bar g" x="260" y="164" width="135" height="16" rx="3"/><rect class="ghost" x="260" y="164" width="373" height="16" rx="3"/>
+    <text class="v" x="758" y="176">25</text><text class="was" x="790" y="176">was 69</text>
+
+    <text class="row" x="244" y="202" text-anchor="end">answered unanswerable</text>
+    <rect class="track" x="260" y="190" width="486" height="16" rx="3"/><rect class="bar g" x="260" y="190" width="43" height="16" rx="3"/><rect class="ghost" x="260" y="190" width="103" height="16" rx="3"/>
+    <text class="v" x="758" y="202">8</text><text class="was" x="790" y="202">was 19</text>
+
+    <text class="row" x="244" y="228" text-anchor="end">refused with evidence</text>
+    <rect class="track" x="260" y="216" width="486" height="16" rx="3"/><rect class="bar g" x="260" y="216" width="22" height="16" rx="3"/><rect class="ghost" x="260" y="216" width="49" height="16" rx="3"/>
+    <text class="v" x="758" y="228">4</text><text class="was" x="790" y="228">was 9</text>
+
+    <text class="row" x="244" y="254" text-anchor="end">retrieval miss</text>
+    <rect class="track" x="260" y="242" width="486" height="16" rx="3"/><rect class="bar r" x="260" y="242" width="22" height="16" rx="3"/><rect class="ghost" x="260" y="242" width="22" height="16" rx="3"/>
+    <text class="v" x="758" y="254">4</text><text class="was" x="790" y="254">was 4</text>
+
+    <text class="row" x="244" y="280" text-anchor="end">reranker demotion</text>
+    <rect class="track" x="260" y="268" width="486" height="16" rx="3"/><rect class="bar r" x="260" y="268" width="16" height="16" rx="3"/><rect class="ghost" x="260" y="268" width="16" height="16" rx="3"/>
+    <text class="v" x="758" y="280">3</text><text class="was" x="790" y="280">was 3</text>
+
+    <text class="row" x="244" y="306" text-anchor="end">lost in chunking</text>
+    <rect class="track" x="260" y="294" width="486" height="16" rx="3"/>
+    <text class="v" x="758" y="306">0</text><text class="was" x="790" y="306">was 0</text>
+  </g>
+
+  <rect x="260" y="330" width="12" height="12" rx="2" fill="#0E7C7B"/><text class="leg" x="278" y="340">retrieval: the evidence didn’t reach the model</text>
+  <rect x="560" y="330" width="12" height="12" rx="2" fill="#C0272D"/><text class="leg" x="578" y="340">generation</text>
+  <rect x="660" y="330" width="12" height="12" rx="2" class="ghost" style="animation:none"/><text class="leg" x="678" y="340">first grading</text>
+</svg>

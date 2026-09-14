@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 320" width="880" height="320" role="img" aria-label="A contract page with the termination clause highlighted, the question asked about it, the model's answer citing excerpt 5, and a CORRECT stamp from the grader.">
+  <title>Ask a contract, get the clause</title>
+  <style>
+    .bg{fill:#E9E8E3}
+    .paper{fill:#FFFFFF;stroke:#D8D6CE}
+    .run{font:500 10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A;letter-spacing:.06em}
+    .body{font:400 12.6px Georgia,'Times New Roman',serif;fill:#737B8A}
+    .head{font:700 13px Georgia,'Times New Roman',serif;fill:#1A2233}
+    .ev{fill:#1A2233}
+    .hl{fill:#FFE36A;transform-box:fill-box;transform-origin:left center}
+    .lab{font:600 10.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#737B8A;letter-spacing:.08em}
+    .q{fill:#FFFFFF;stroke:#D8D6CE}
+    .qt{font:500 14px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .a{fill:#D9EFEE}
+    .at{font:500 13.4px -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#1A2233}
+    .cite{font:700 13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#0E7C7B}
+    .link{fill:none;stroke:#0E7C7B;stroke-width:1.6;stroke-dasharray:200;stroke-dashoffset:0}
+    .linkt{font:italic 400 12.5px Georgia,'Times New Roman',serif;fill:#0E7C7B}
+    .stamp rect{fill:none;stroke:#2E7D4F;stroke-width:3}
+    .stamp text{fill:#2E7D4F}
+    .st1{font:400 19px Georgia,'Times New Roman',serif;letter-spacing:.14em}
+    .st2{font:500 9.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.05em}
+    .stamp{transform-box:fill-box;transform-origin:center}
+    .note{font:italic 400 13px Georgia,'Times New Roman',serif;fill:#C0272D}
+    @keyframes sweep1{0%,8%{transform:scaleX(0)}15%,100%{transform:scaleX(1)}}
+    @keyframes sweep2{0%,15%{transform:scaleX(0)}22%,100%{transform:scaleX(1)}}
+    @keyframes sweep3{0%,22%{transform:scaleX(0)}26%,100%{transform:scaleX(1)}}
+    @keyframes show{0%,30%{opacity:0}37%,100%{opacity:1}}
+    @keyframes draw{0%,40%{stroke-dashoffset:200}50%,100%{stroke-dashoffset:0}}
+    @keyframes showlate{0%,48%{opacity:0}53%,100%{opacity:1}}
+    @keyframes stamp{0%,55%{opacity:0;transform:rotate(-8deg) scale(1.5)}59%,100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+    .h1{animation:sweep1 10s infinite}.h2{animation:sweep2 10s infinite}.h3{animation:sweep3 10s infinite}
+    .ans{animation:show 10s infinite}
+    .link{animation:draw 10s infinite}
+    .linkt{animation:showlate 10s infinite}
+    .stamp{transform:rotate(-8deg);animation:stamp 10s infinite}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  </style>
+  <rect class="bg" width="880" height="320" rx="14"/>
+
+  <g transform="rotate(-0.6 270 155)">
+    <rect class="paper" x="30" y="28" width="476" height="256" rx="3"/>
+    <text class="run" x="50" y="52">EXHIBIT 10.14 · MASTER SERVICES AGREEMENT · PAGE 1</text>
+    <line x1="50" y1="61" x2="486" y2="61" stroke="#E7E5DE"/>
+    <text class="head" x="50" y="84">4. Term and Termination.</text>
+    <text class="body" x="50" y="104">(a) The initial term of this Agreement shall be one (1) year</text>
+    <text class="body" x="50" y="122">from the Effective Date (the “Initial Term”). This Agreement will</text>
+    <text class="body" x="50" y="140">automatically renew for additional 1-year terms unless earlier</text>
+    <text class="body" x="50" y="158">terminated pursuant to this Agreement’s express provisions (…).</text>
+    <text class="body" x="50" y="176">Neither Party may terminate this Agreement during the Initial</text>
+    <text class="body" x="50" y="194">Term except as set forth in paragraph 4(b) or any Exhibit.</text>
+    <rect class="hl h1" x="47" y="200" width="330" height="17" rx="2"/>
+    <rect class="hl h2" x="47" y="218" width="320" height="17" rx="2"/>
+    <rect class="hl h3" x="47" y="236" width="143" height="17" rx="2"/>
+    <text class="body ev" x="50" y="212" textLength="323" lengthAdjust="spacingAndGlyphs">Either Party may terminate this Agreement for any reason</text>
+    <text class="body ev" x="50" y="230" textLength="313" lengthAdjust="spacingAndGlyphs">following the Initial Term upon ninety (90) days written</text>
+    <text class="body ev" x="50" y="248" textLength="136" lengthAdjust="spacingAndGlyphs">notice to the other Party.</text>
+    <text class="body" x="193" y="248">Except for termination for material</text>
+    <text class="body" x="50" y="266">breach as detailed in paragraph 4(b), Kubient shall be entitled…</text>
+  </g>
+
+  <text class="lab" x="548" y="46">THE QUESTION</text>
+  <rect class="q" x="548" y="56" width="304" height="58" rx="8"/>
+  <text class="qt" x="562" y="80">Can a party end the agreement early</text>
+  <text class="qt" x="562" y="100">without cause, and on what notice?</text>
+
+  <g class="ans">
+    <text class="lab" x="548" y="140">THE ANSWER · QWEN3.5:4B, LOCAL</text>
+    <rect class="a" x="548" y="150" width="304" height="92" rx="8"/>
+    <text class="at" x="562" y="173">Yes, either party may terminate the</text>
+    <text class="at" x="562" y="192">Agreement for any reason following the</text>
+    <text class="at" x="562" y="211">Initial Term upon ninety (90) days</text>
+    <text class="at" x="562" y="230">written notice to the other party <tspan class="cite">[5]</tspan></text>
+  </g>
+  <path class="link" d="M548 226 C 520 226, 500 224, 468 224"/>
+  <text class="linkt" x="548" y="262">[5] = the highlighted clause, page 1</text>
+
+  <g class="stamp">
+    <rect x="736" y="276" width="124" height="30" rx="4"/>
+    <text class="st1" x="749" y="298">CORRECT</text>
+  </g>
+</svg>
