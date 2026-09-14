@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>contract-rag</title>
+<meta name="description" content="A contract, read by a machine: retrieval-augmented question answering over real commercial contracts, built with local open models and measured end to end.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Mrs+Saint+Delafield&display=swap">
+<style>
+/* ---------- tokens: red = the reviewer's pen, yellow = evidence, teal = the machine ---------- */
+:root{
+  --desk:#E9E8E3; --sheet:#FFFFFF; --sheet-2:#F7F6F2; --line:#D8D6CE; --line-soft:#E7E5DE;
+  --ink:#1A2233; --ink-2:#465063; --ink-3:#737B8A;
+  --pen:#C0272D; --pen-soft:#F7DEDF;
+  --hl:#FFE36A; --hl-ink:#1A2233;
+  --mach:#0E7C7B; --mach-2:#3A9E9C; --mach-soft:#D9EFEE; --mach-ink:#FFFFFF;
+  --ok:#2E7D4F; --ok-soft:#DFF0E4; --warn:#A86A12; --bad:#B3303A;
+  --shadow:0 1px 1px rgba(26,34,51,.05),0 12px 30px rgba(26,34,51,.10);
+  --serif:"Libre Caslon Text","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --display:"Libre Caslon Display","Libre Caslon Text","Iowan Old Style",Georgia,serif;
+  --sans:"IBM Plex Sans","Helvetica Neue",Arial,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --hand:"Caveat","Bradley Hand","Segoe Print",cursive;
+  --sign:"Mrs Saint Delafield","Snell Roundhand","Segoe Script",cursive;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --desk:#0E1014; --sheet:#171A21; --sheet-2:#1C2029; --line:#2C313C; --line-soft:#232832;
+    --ink:#E8E6E0; --ink-2:#B9BCC4; --ink-3:#8C919C;
+    --pen:#FF7A72; --pen-soft:#3A1F22;
+    --hl:#6B5A12; --hl-ink:#FFF4C2;
+    --mach:#4FD1C5; --mach-2:#3AA89E; --mach-soft:#17312F; --mach-ink:#0E1014;
+    --ok:#74CF97; --ok-soft:#1B3325; --warn:#E6B45A; --bad:#FF8A94;
+    --shadow:0 1px 1px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --desk:#0E1014; --sheet:#171A21; --sheet-2:#1C2029; --line:#2C313C; --line-soft:#232832;
+  --ink:#E8E6E0; --ink-2:#B9BCC4; --ink-3:#8C919C;
+  --pen:#FF7A72; --pen-soft:#3A1F22;
+  --hl:#6B5A12; --hl-ink:#FFF4C2;
+  --mach:#4FD1C5; --mach-2:#3AA89E; --mach-soft:#17312F; --mach-ink:#0E1014;
+  --ok:#74CF97; --ok-soft:#1B3325; --warn:#E6B45A; --bad:#FF8A94;
+  --shadow:0 1px 1px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--desk);color:var(--ink);font:400 17px/1.65 var(--serif);-webkit-font-smoothing:antialiased}
+a{color:var(--mach);text-underline-offset:3px}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:24px}
+@media (max-width:520px){.wrap{padding-inline:16px}}
+h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.01em;text-wrap:balance;margin:0}
+.mono{font-family:var(--mono)}
+.sans{font-family:var(--sans)}
+.label{font:500 11.5px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.hand{font-family:var(--hand);color:var(--pen)}
+:focus-visible{outline:2px solid var(--mach);outline-offset:2px;border-radius:4px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:30;background:var(--desk);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:18px;height:58px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font:400 21px/1 var(--display)}
+.brand b{font:700 15px/1 var(--serif);color:var(--sheet);background:var(--ink);width:26px;height:26px;border-radius:50%;display:grid;place-items:center}
+.nav ul{display:flex;gap:2px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav a.nl{font:500 14.5px/1 var(--sans);color:var(--ink-2);text-decoration:none;padding:9px 10px;border-radius:8px}
+.nav a.nl:hover{background:var(--sheet);color:var(--ink)}
+.icon-btn{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:9px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer}
+@media (max-width:760px){.nav li.opt{display:none}}
+
+/* ---------- hero ---------- */
+.hero{padding-block:64px 56px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:52px;align-items:center}
+@media (max-width:940px){.hero .wrap{grid-template-columns:1fr;gap:34px}.hero{padding-block:40px}}
+.hero h1{font-size:clamp(44px,6.4vw,82px);line-height:.98}
+.hero h1 em{font-style:italic;font-family:var(--serif);color:var(--pen)}
+.hero .lede{font-size:clamp(17px,1.8vw,20px);color:var(--ink-2);margin:24px 0 28px;max-width:31em}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;font:600 15.5px/1 var(--sans);text-decoration:none;border-radius:10px;padding:14px 18px;border:1px solid transparent;cursor:pointer}
+.btn.ink{background:var(--ink);color:var(--sheet)}
+.btn.ink:hover{filter:brightness(1.15)}
+.btn.line{background:transparent;color:var(--ink);border-color:var(--ink-3)}
+.btn.line:hover{background:var(--sheet)}
+.inks{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:26px;font:500 13px/1.3 var(--sans);color:var(--ink-2)}
+.inks span{display:inline-flex;align-items:center;gap:7px}
+.inks i{width:22px;height:9px;border-radius:2px;display:inline-block}
+
+.paper{background:var(--sheet);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);position:relative}
+.hero .paper{padding:34px 40px 30px;transform:rotate(-.6deg)}
+@media (max-width:520px){.hero .paper{padding:24px 20px;transform:none}}
+.paper .run{display:flex;justify-content:space-between;gap:10px;font:500 11px/1.2 var(--mono);letter-spacing:.06em;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line-soft);padding-bottom:10px;margin-bottom:16px}
+.paper .body{font-size:15.5px;line-height:1.75;color:var(--ink-2);text-align:justify;hyphens:auto}
+.paper .body b{color:var(--ink)}
+.sweep{background:linear-gradient(var(--hl),var(--hl)) no-repeat 0 0/0% 100%;color:var(--ink);border-radius:2px;padding:1px 0;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.sweep.on{background-size:100% 100%;transition:background-size 1.6s cubic-bezier(.6,.1,.2,1) .5s}
+.margin-note{position:absolute;right:-8px;top:-34px;transform:rotate(-3deg);font:600 24px/1.1 var(--hand);color:var(--pen);max-width:230px;text-align:right;opacity:1}
+.margin-note svg{display:block;margin:4px 0 0 auto;color:var(--pen)}
+@media (max-width:940px){.margin-note{position:static;transform:none;text-align:left;max-width:none;margin-bottom:8px}.margin-note svg{display:none}}
+.answer-slip{margin-top:18px;border-top:1px dashed var(--line);padding-top:14px;font:500 14.5px/1.55 var(--sans);color:var(--ink)}
+.cite{font:500 12px/1 var(--mono);color:var(--mach-ink);background:var(--mach);border-radius:5px;padding:3px 5px;vertical-align:1px}
+
+/* ---------- section scaffolding ---------- */
+section{padding-block:80px}
+@media (max-width:760px){section{padding-block:56px}}
+.sec-head{max-width:44em;margin-bottom:36px}
+.sec-head .label{display:block;margin-bottom:12px}
+.sec-head h2{font-size:clamp(34px,4.6vw,56px);line-height:1.02}
+.sec-head p{color:var(--ink-2);font-size:18.5px;margin:16px 0 0}
+.reveal{transition:transform .8s cubic-bezier(.2,.7,.2,1),opacity .8s}
+.reveal.pending{transform:translateY(22px);opacity:.35}
+
+/* ---------- scrollytelling ---------- */
+/* The whole explainer is pinned while the page scrolls natively through a track 9 steps long: every
+   --step-len of scrolling shows the next step. Nothing intercepts the wheel and nothing depends on snapping,
+   so every notch or swipe moves the page with the device's own smoothness. */
+.story{--step-len:38vh;position:relative;height:calc(8.5 * var(--step-len) + 100vh - 59px)}  /* last step: half a segment */
+.story-pin{position:sticky;top:59px;height:calc(100vh - 59px);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:44px;padding-block:16px}
+.stage-wrap{display:flex;min-height:0}
+.stage{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
+.story-side{display:flex;flex-direction:column;justify-content:center;gap:16px;min-height:0}
+.steps{display:grid}
+.step{grid-area:1/1;opacity:0;transform:translateY(12px);visibility:hidden;pointer-events:none;
+  transition:opacity .3s ease,transform .3s ease,visibility 0s linear .3s}
+.step.active{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition-delay:0s}
+.story-nav{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.story-nav .dot{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--sheet);color:var(--ink-2);font:500 12px/1 var(--mono);cursor:pointer;padding:0}
+.story-nav .dot:hover{border-color:var(--ink-3)}
+.story-nav .dot[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.story-nav .hint{font:500 12.5px/1.3 var(--sans);color:var(--ink-3);margin-left:6px}
+.step .card{background:var(--sheet);border:1px solid var(--ink-3);border-radius:6px;padding:26px 26px 22px;box-shadow:var(--shadow)}
+.step .card h3{font-size:30px;line-height:1.08;margin:8px 0 12px}
+.step .card p{margin:0 0 14px;color:var(--ink-2);font-size:16.5px}
+.why{border-left:3px solid var(--pen);background:var(--pen-soft);border-radius:0 6px 6px 0;padding:12px 14px;font:400 14.5px/1.55 var(--sans);color:var(--ink)}
+.why b{font-weight:600}
+.why .hand{font-size:21px;display:block;line-height:1;margin-bottom:4px}
+@media (max-width:960px){
+  .story{--step-len:40vh}
+  .story-pin{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:10px;padding-block:8px}
+  .story-side{gap:8px}
+  .step .card{padding:14px 16px 12px}
+  .why{font-size:13px;padding:9px 11px}
+  .why .hand{font-size:18px}
+  .step .card h3{font-size:21px;margin:4px 0 6px}
+  .step .card p{font-size:14.5px;margin-bottom:8px}
+  .story-nav .dot{width:26px;height:26px;font-size:11px}
+  .story-nav .hint{display:none}
+}
+
+/* the question bar */
+.qbar{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font:500 14.5px/1.45 var(--sans);color:var(--ink);display:flex;gap:10px;align-items:flex-start}
+.qbar .qlabel{font:500 11px/1.9 var(--mono);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;flex:none}
+.qbar del{text-decoration:none;background:linear-gradient(var(--pen),var(--pen)) no-repeat 0 55%/0% 2px;transition:background-size .7s ease,color .4s}
+.qbar ins{text-decoration:none;font-family:var(--hand);font-size:21px;line-height:1;color:var(--pen);display:inline-block;max-width:0;overflow:hidden;white-space:nowrap;vertical-align:-2px;transition:max-width .7s ease .5s}
+.stage[data-step="3"] .qbar del,.stage.after-3 .qbar del{background-size:100% 2px;color:var(--ink-3)}
+.stage[data-step="3"] .qbar ins,.stage.after-3 .qbar ins{max-width:9em}
+.abox{background:var(--mach-soft);border-radius:8px;padding:10px 14px;font:500 14px/1.5 var(--sans);color:var(--ink);max-height:0;overflow:hidden;opacity:0;padding-block:0;transition:max-height .6s ease,opacity .4s,padding .4s}
+.stage.after-5 .abox,.stage[data-step="5"] .abox{max-height:140px;opacity:1;padding-block:10px}
+
+/* the document */
+.doc{flex:1;min-height:0;overflow:hidden;padding:22px 26px;position:relative}
+.doc .run{margin-bottom:12px}
+.doc .text{font-size:15px;line-height:1.85;color:var(--ink-2);text-align:justify;hyphens:auto;transition:color .4s}
+@media (max-width:960px){.doc{padding:14px 16px}.doc .text{font-size:13px;line-height:1.7}}
+.seg{border-radius:2px;transition:background-color .45s,color .45s,box-shadow .45s,opacity .45s;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.seg .h{color:var(--ink);font-weight:700}
+.cut{display:inline-block;width:0;overflow:visible;position:relative;vertical-align:baseline}
+.cut::after{content:"✂";position:absolute;left:-7px;top:-1.25em;font-size:13px;color:var(--pen);opacity:0;transition:opacity .3s}
+.blocktag{position:absolute;left:14px;top:12px;font:500 11px/1 var(--mono);color:var(--mach);background:var(--mach-soft);border-radius:4px;padding:5px 7px;opacity:0;transition:opacity .4s}
+.doc .frame{position:absolute;inset:6px;border:2px dashed var(--mach);border-radius:6px;opacity:0;transition:opacity .45s;pointer-events:none}
+.stamp{position:absolute;right:22px;bottom:26px;font:400 30px/1 var(--display);letter-spacing:.12em;color:var(--ok);border:3px solid var(--ok);border-radius:6px;padding:8px 14px;transform:rotate(-9deg) scale(1.6);opacity:0;transition:transform .45s cubic-bezier(.3,1.6,.5,1),opacity .3s;background:color-mix(in srgb,var(--sheet) 70%,transparent)}
+.stamp small{display:block;font:500 10px/1.2 var(--mono);letter-spacing:.06em;text-align:center;margin-top:4px}
+
+/* step states: every step sets its visual explicitly (fast scrolling skips transitions) */
+.stage[data-step="1"] .frame,.stage[data-step="1"] .blocktag{opacity:1}
+.stage[data-step="1"] .seg{color:var(--ink-3)}
+.stage[data-step="2a"] .seg.f1{background:color-mix(in srgb,var(--mach) 16%,transparent)}
+.stage[data-step="2a"] .seg.f2{background:color-mix(in srgb,var(--pen) 11%,transparent)}
+.stage[data-step="2a"] .seg.f1.f2{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--mach) 22%,transparent) 0 6px,color-mix(in srgb,var(--pen) 16%,transparent) 6px 12px)}
+.stage[data-step="2a"] .cut::after{opacity:1}
+.stage[data-step="2b"] .seg{background:color-mix(in srgb,var(--mach) 13%,transparent)}
+.stage[data-step="2b"] .seg.pre{background:transparent;color:var(--ink-3)}
+.stage[data-step="2c"] .seg{box-shadow:inset 0 -2px 0 var(--line)}
+.stage[data-step="2c"] .seg.nb{background:color-mix(in srgb,var(--mach) 8%,transparent)}
+.stage[data-step="2c"] .seg.ev{background:color-mix(in srgb,var(--mach) 26%,transparent);box-shadow:inset 0 -2px 0 var(--mach)}
+.stage[data-step="3"] .seg{color:var(--ink-3)}
+.stage[data-step="4"] .seg{color:var(--ink-3)}
+.stage[data-step="4"] .seg.f2{color:var(--ink);background:color-mix(in srgb,var(--mach) 13%,transparent)}
+.stage[data-step="5"] .seg,.stage[data-step="6"] .seg,.stage[data-step="7"] .seg{color:var(--ink-3)}
+.stage[data-step="5"] .seg.ev,.stage[data-step="6"] .seg.ev,.stage[data-step="7"] .seg.ev{color:var(--ink);background:var(--hl);color:var(--hl-ink)}
+.stage[data-step="6"] .stamp,.stage[data-step="7"] .stamp{opacity:1;transform:rotate(-9deg) scale(1)}
+
+/* side panel */
+.pane-area{flex:none;height:210px;position:relative}
+@media (max-width:960px){.pane-area{height:128px}}
+.pane{position:absolute;inset:0;background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow:hidden;opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s;pointer-events:none;font:400 13.5px/1.45 var(--sans)}
+.pane.on{opacity:1;transform:none;pointer-events:auto}
+.pane .label{display:block;margin-bottom:10px}
+@media (max-width:960px){.pane{padding:10px 12px;font-size:12px}.pane .label{margin-bottom:6px}}
+.blockmap{display:flex;gap:3px;height:46px;align-items:stretch}
+.blockmap div{border-radius:4px;background:var(--sheet-2);border:1px solid var(--line);position:relative;min-width:6px;transition:background .4s}
+.blockmap div.hit{background:var(--mach-soft);border-color:var(--mach)}
+.blockmap div.hit::after{content:"▲ our clause (char 4,324)";position:absolute;left:calc(var(--at)*100%);top:50px;white-space:nowrap;font:500 11px/1 var(--mono);color:var(--mach);transform:translateX(-8px)}
+.bmlegend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:26px;font:500 11.5px/1.3 var(--mono);color:var(--ink-3)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:500 12px/1 var(--mono);border:1px solid var(--line);border-radius:5px;padding:6px 7px;color:var(--ink-2);background:var(--sheet-2)}
+.chip.hit{border-color:var(--mach);color:var(--mach-ink);background:var(--mach)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin-top:10px;font-size:13px}
+.kv b{font:500 12.5px/1.5 var(--mono);color:var(--ink)}
+.rank{display:grid;grid-template-columns:118px 1fr 40px 64px;gap:4px 8px;align-items:center;font:500 11.5px/1 var(--mono);color:var(--ink-2)}
+.rank .bar{height:9px;border-radius:3px;background:var(--line);overflow:hidden}
+.rank .bar i{display:block;height:100%;background:var(--ink-3);width:0;transition:width .7s cubic-bezier(.2,.7,.2,1)}
+.rank .hit{color:var(--ink);font-weight:500}
+.rank .bar.hit i{background:var(--mach)}
+.rank .dn{color:var(--ink-3)}
+.rank .dn.hit{color:var(--mach)}
+@media (max-width:960px){.rank{grid-template-columns:96px 1fr 30px 50px;gap:2px 6px;font-size:10.5px}.rank .extra{display:none}}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:5px 18px;font:400 12.5px/1.35 var(--sans)}
+@media (max-width:960px){.checks{grid-template-columns:1fr;gap:1px;font-size:11px}}
+.checks div{display:flex;gap:7px;align-items:baseline;opacity:.35;transition:opacity .3s}
+.checks div::before{content:"✓";font-weight:700;color:var(--ok)}
+.pane.on .checks div{opacity:1}
+.pane.on .checks div:nth-child(2){transition-delay:.12s}.pane.on .checks div:nth-child(3){transition-delay:.24s}.pane.on .checks div:nth-child(4){transition-delay:.36s}
+.pane.on .checks div:nth-child(5){transition-delay:.48s}.pane.on .checks div:nth-child(6){transition-delay:.6s}.pane.on .checks div:nth-child(7){transition-delay:.72s}
+.verdict{display:flex;gap:10px;align-items:flex-start;margin-top:6px}
+.verdict .tick{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ok);color:var(--sheet);display:grid;place-items:center;font:700 13px/1 var(--sans)}
+
+/* ---------- decisions (a schedule, set out like contract clauses) ---------- */
+.schedule{background:var(--sheet);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);padding:44px clamp(20px,5vw,64px)}
+.schedule .title{text-align:center;margin-bottom:30px}
+.schedule .title h2{font-size:clamp(28px,3.6vw,42px)}
+.schedule .title p{color:var(--ink-3);font:500 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;margin:10px 0 0}
+.clause-row{display:grid;grid-template-columns:56px minmax(0,1fr) minmax(0,.9fr);gap:10px 24px;padding:18px 0;border-top:1px solid var(--line-soft)}
+.clause-row:first-of-type{border-top:0}
+@media (max-width:800px){.clause-row{grid-template-columns:40px minmax(0,1fr)}.clause-row .evidence{grid-column:2}}
+.clause-row .no{font:400 22px/1.2 var(--display);color:var(--ink-3)}
+.clause-row h3{font:700 17px/1.35 var(--serif)}
+.clause-row p{margin:4px 0 0;color:var(--ink-2);font-size:15.5px}
+.clause-row .instead{font:400 14px/1.4 var(--sans);color:var(--ink-3);margin-top:6px}
+.clause-row .instead s{text-decoration-color:var(--pen);text-decoration-thickness:2px}
+.evidence{font:400 14px/1.5 var(--sans);color:var(--ink);background:var(--sheet-2);border-radius:6px;padding:12px 14px;align-self:start}
+.evidence b{font:500 13px/1 var(--mono);color:var(--mach)}
+
+/* ---------- results ---------- */
+.results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+@media (max-width:980px){.results{grid-template-columns:1fr}}
+.fig{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.fig h3{font-size:24px;line-height:1.1}
+.fig .kick{font:500 14.5px/1.45 var(--sans);color:var(--ink-2);margin:0}
+.fig svg{width:100%;height:auto;display:block}
+.fig figcaption{font:400 12.5px/1.5 var(--sans);color:var(--ink-3)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font:400 12px/1.3 var(--sans);color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+/* ---------- exhibits (real Q&A) ---------- */
+.exhibits{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:22px;align-items:start}
+@media (max-width:880px){.exhibits{grid-template-columns:1fr}}
+.xlist{display:grid;gap:10px}
+.xbtn{text-align:left;background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:13px 15px;cursor:pointer;color:var(--ink);font:500 15px/1.4 var(--sans);display:grid;gap:5px}
+.xbtn small{font:500 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.xbtn:hover{border-color:var(--ink-3)}
+.xbtn[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 3px 0 0 var(--pen)}
+.xcard{padding:26px 28px}
+.xcard .contract{font:500 12px/1.4 var(--mono);color:var(--ink-3)}
+.xcard .q{font:400 21px/1.35 var(--display);margin:8px 0 14px}
+.xcard .a{font:400 15.5px/1.65 var(--sans);color:var(--ink)}
+.xcard button.cite{border:0;cursor:pointer;margin:0 1px}
+.xcard button.cite[aria-pressed="true"]{background:var(--pen)}
+.xcard .grades{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.gtag{font:600 12.5px/1 var(--sans);border-radius:999px;padding:7px 11px;background:var(--ok-soft);color:var(--ok)}
+.src{border-left:3px solid var(--line);padding:6px 0 6px 12px;margin-top:10px;font-size:14.5px;line-height:1.6;color:var(--ink-2);transition:border-color .3s}
+.src.on{border-color:var(--pen)}
+.src .meta{font:500 11.5px/1.3 var(--mono);color:var(--ink-3);display:block;margin-bottom:3px}
+.src mark{background:var(--hl);color:var(--hl-ink);padding:0 2px;border-radius:2px}
+
+/* ---------- signature ---------- */
+.witness{text-align:center;max-width:760px;margin:0 auto}
+.witness .label{display:block;margin-bottom:14px}
+.witness p{font-size:19px;color:var(--ink-2);margin:0 auto 34px;max-width:34em}
+.sigs{display:grid;grid-template-columns:1fr 1fr;gap:34px;text-align:left;margin-top:14px}
+@media (max-width:620px){.sigs{grid-template-columns:1fr}}
+.sig .name{font:400 54px/1 var(--sign);color:var(--ink);height:62px;white-space:nowrap;overflow:hidden;border-bottom:1.5px solid var(--ink);clip-path:inset(0 100% 0 0);transition:clip-path 2.2s cubic-bezier(.5,.1,.3,1) .2s}
+.sig.drawn .name{clip-path:inset(0 0 0 0)}
+.sig .role{font:500 12px/1.5 var(--mono);color:var(--ink-3);margin-top:8px;letter-spacing:.04em}
+footer{padding-block:40px;color:var(--ink-3);font:400 14px/1.6 var(--sans)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;border-top:1px solid var(--line);padding-top:24px}
+footer a{color:var(--ink-2)}
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#top"><b>§</b>contract-rag</a>
+    <ul>
+      <li class="opt"><a class="nl" href="#inside">Inside</a></li>
+      <li class="opt"><a class="nl" href="#decisions">Decisions</a></li>
+      <li class="opt"><a class="nl" href="#results">Results</a></li>
+      <li><a class="nl" href="#exhibits">Try it</a></li>
+      <li><a class="nl" href="https://github.com/mazenDDr/Contract-rag">GitHub</a></li>
+    </ul>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch between light and dark mode" title="Light / dark">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <span class="label">Retrieval-augmented QA · 100 real commercial contracts</span>
+      <h1 style="margin-top:14px">A contract, <em>read</em> by a machine.</h1>
+      <p class="lede">Ask a question about a real agreement. contract-rag finds the clause, answers in a sentence, and cites exactly where it read it, or says the contract doesn't say. To test it, a second model checked 560 of its answers, line by line.</p>
+      <div class="ctas">
+        <a class="btn ink" href="#inside">See how it reads ↓</a>
+        <a class="btn line" href="https://github.com/mazenDDr/Contract-rag">Read the code</a>
+      </div>
+      <div class="inks" aria-label="How to read the colours on this page">
+        <span><i style="background:var(--pen)"></i>red pen: the reviewer</span>
+        <span><i style="background:var(--hl)"></i>highlighter: evidence</span>
+        <span><i style="background:var(--mach)"></i>teal: the machine</span>
+      </div>
+    </div>
+    <div class="paper" id="heroPaper">
+      <div class="margin-note" aria-hidden="true">Can either side walk away early?
+        <svg width="70" height="36" viewBox="0 0 70 36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M66 3C52 10 34 16 10 30"/><path d="M10 30l2-9M10 30l9-1"/></svg>
+      </div>
+      <div class="run"><span>Exhibit 10.14 · Master Services Agreement</span><span>Kubient × The Associated Press · p. 1 of 5</span></div>
+      <div class="body" id="heroText"></div>
+      <div class="answer-slip"><span class="label" style="display:block;margin-bottom:5px">Answer · qwen3.5:4b, running locally</span><span id="heroAnswer"></span></div>
+    </div>
+  </div>
+</header>
+
+<section id="inside" aria-labelledby="inside-h" style="padding-top:30px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="label">Inside the machine</span>
+      <h2 id="inside-h">Follow one question through the system.</h2>
+      <p>Scroll. The same real clause goes through every stage, and each stage says what was chosen, what it was chosen over, and the number that decided it.</p>
+    </div>
+    <div class="story" id="story"><div class="story-pin">
+      <div class="stage-wrap" aria-hidden="true">
+        <div class="stage" id="stage" data-step="0">
+          <div class="qbar"><span class="qlabel">Q</span><span id="qText"></span></div>
+          <div class="abox" id="aText"></div>
+          <div class="paper doc">
+            <div class="frame"></div>
+            <span class="blocktag" id="blockTag"></span>
+            <div class="run"><span>Master Services Agreement · § 4 Term and Termination</span><span id="stepCount"></span><span id="docRun">chars</span></div>
+            <div class="text" id="docText"></div>
+            <div class="stamp">CORRECT<small>checked by gemma4:12b</small></div>
+          </div>
+          <div class="pane-area" id="panes"></div>
+        </div>
+      </div>
+      <div class="story-side"><div class="steps" id="steps">
+        <div class="step" data-step="1"><div class="card">
+          <span class="label">§ 1 · Parse</span><h3>A PDF is a drawing, not a document.</h3>
+          <p>A PDF only knows where to paint each letter. The parser reads the layout instead: headings from font size and weight, tables kept as tables. Every block keeps its exact character offsets, so any answer can point back to its place on the page.</p>
+          <div class="why"><span class="hand">why not plain text?</span>Plain text loses the headings, and headings are where a contract's structure lives. <b>100 of 100</b> contracts parsed; <b>0</b> offset errors in the check.</div>
+        </div></div>
+        <div class="step" data-step="2a"><div class="card">
+          <span class="label">§ 2 · Chunk (i)</span><h3>Cut it into windows.</h3>
+          <p>Search works on pieces, so the contract is cut. Fixed windows of 512 tokens take no notice of meaning: the scissors land mid-sentence. A 64-token overlap is what saves this clause, which sits exactly where two windows overlap.</p>
+          <div class="why"><span class="hand">why so crude?</span>Because it won. Of three strategies, fixed windows put the evidence in the top 8 most often: <b>0.85</b> of the time, against 0.74 and 0.58.</div>
+        </div></div>
+        <div class="step" data-step="2b"><div class="card">
+          <span class="label">§ 2 · Chunk (ii)</span><h3>…or by section…</h3>
+          <p>Section-aware chunking follows the contract's own headings: "4. Term and Termination" becomes one piece. It is the most lawyer-like cut, and its answers are the most faithful to their sources.</p>
+          <div class="why"><span class="hand">so why not this?</span>Long sections dilute the match and short ones lose context, so retrieval found the evidence less often: recall@8 <b>0.74</b> against 0.85.</div>
+        </div></div>
+        <div class="step" data-step="2c"><div class="card">
+          <span class="label">§ 2 · Chunk (iii)</span><h3>…or sentence by sentence.</h3>
+          <p>The sharpest cut: one sentence is searched, and the model is shown its neighbours too. Here the whole clause is exactly one sentence.</p>
+          <div class="why"><span class="hand">the catch</span>A single sentence rarely shares enough words with a question: recall@8 <b>0.58</b>. The model still read more than recall suggests, <b>0.71–0.75</b> of the evidence, thanks to the neighbours.</div>
+        </div></div>
+        <div class="step" data-step="3"><div class="card">
+          <span class="label">§ 3 · The question</span><h3>First, strike the contract's name.</h3>
+          <p>Every question names its contract. Once the search is limited to that contract, the name only matches the title page and the signature blocks, and they win first place. So the name is struck out before searching.</p>
+          <div class="why"><span class="hand">one line of code</span>The single biggest improvement in the project: mean reciprocal rank <b>0.34 → 0.73</b> for keyword search.</div>
+        </div></div>
+        <div class="step" data-step="4"><div class="card">
+          <span class="label">§ 4 · Search</span><h3>Keywords against meaning.</h3>
+          <p>Two ways to rank the contract's 12 chunks: BM25, which counts shared words, and an embedding model, which compares meaning. On this question, meaning search put the clause <b>1st</b> and keywords put it <b>5th</b>.</p>
+          <div class="why"><span class="hand">and still BM25?</span>Across the 59 test questions, keywords ranked the evidence higher: MRR <b>0.73</b> against <b>0.47–0.50</b>. Combining the two tied BM25 at extra cost, and a reranker <b>hurt</b> (0.56) while adding a second per question. Fifth place still makes the top 8, which is why the model reads eight excerpts, not one.</div>
+        </div></div>
+        <div class="step" data-step="5"><div class="card">
+          <span class="label">§ 5 · Answer</span><h3>Cite it, or say it isn't there.</h3>
+          <p>The top eight chunks are numbered [1] to [8] and handed to <span class="mono">qwen3.5:4b</span>, which runs on the laptop. Its instructions: answer only from the excerpts, cite each claim, and if they don't cover the question, say so.</p>
+          <div class="why"><span class="hand">why so strict?</span>A citation makes every claim checkable. When the contract really doesn't cover a question, it declines <b>91%</b> of the time instead of guessing.</div>
+        </div></div>
+        <div class="step" data-step="6"><div class="card">
+          <span class="label">§ 6 · Check</span><h3>Check every sentence, not just the answer.</h3>
+          <p>A second, larger model from another family, <span class="mono">gemma4:12b</span>, splits the answer into statements and checks each one against only the excerpts it cites. Plain code also checks that every number in a statement appears in its excerpt.</p>
+          <div class="why"><span class="hand">why a different model?</span>Models rate their own style higher. The grader was itself checked against reference labels, and one rule that looked stricter was rejected because it agreed <i>worse</i> (κ 0.18). The adopted one agrees at κ <b>0.60</b>.</div>
+        </div></div>
+        <div class="step" data-step="7"><div class="card">
+          <span class="label">§ 7 · Diagnose</span><h3>When it fails, find the stage that broke.</h3>
+          <p>Every answer is traced through the saved rankings in order: was the evidence in a chunk, ranked, delivered, whole, answered, supported? This one passes every check. Of 560 answers, 185 didn't.</p>
+          <div class="why"><span class="hand">what it showed</span><b>62%</b> of failures happen before the model sees the evidence, mostly two-part questions where only one half's clause is found. That's the next thing to fix, not the model.</div>
+        </div></div>
+      </div>
+      <nav class="story-nav" id="storyNav" aria-label="Jump to a step"></nav>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<section id="decisions" aria-labelledby="decisions-h">
+  <div class="wrap">
+    <div class="schedule reveal">
+      <div class="title">
+        <h2 id="decisions-h">Schedule A: Decisions</h2>
+        <p>What was chosen, what it was chosen over, and the measurement that decided it</p>
+      </div>
+      <div id="clauses"></div>
+    </div>
+  </div>
+</section>
+
+<section id="results" aria-labelledby="results-h" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="label">Results · 70 held-out test questions</span>
+      <h2 id="results-h">What the measurements say.</h2>
+      <p>Settings were chosen on the development questions and reported on test questions the system had never been tuned on, with 95% confidence intervals throughout.</p>
+    </div>
+    <div class="results">
+      <figure class="fig reveal" style="margin:0"><h3>Search</h3><p class="kick">Inside one contract, plain keywords win.</p><div id="chartSearch"></div><figcaption>Mean reciprocal rank of the first correct clause (1 = always first). Fixed 512-token chunks.</figcaption></figure>
+      <figure class="fig reveal" style="margin:0"><h3>Answers</h3><p class="kick">The same answers, graded twice.</p><div id="chartAnswer"></div><div class="legend"><span><i style="background:var(--ink-3)"></i>first grader</span><span><i style="background:var(--mach)"></i>fixed grader</span></div><figcaption>Answer correctness per setup. Fixing the grader raised every row without changing one answer.</figcaption></figure>
+      <figure class="fig reveal" style="margin:0"><h3>Failures</h3><p class="kick">Where the 185 misses happened.</p><div id="chartFail"></div><div class="legend" id="failLegend"></div><figcaption>By the first stage that failed. Teal is retrieval, amber is the model, red is abstention.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="exhibits" aria-labelledby="exhibits-h" style="background:color-mix(in srgb,var(--sheet) 55%,var(--desk))">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="label">Exhibits A–E · real outputs</span>
+      <h2 id="exhibits-h">Ask it something.</h2>
+      <p>Real questions and answers from the test run, with the best setup. Click a citation to see the sentence it points to. Typing your own question needs the API, which is the next part of the project.</p>
+    </div>
+    <div class="exhibits">
+      <div class="xlist" id="xlist" role="group" aria-label="Example questions"></div>
+      <div class="paper xcard" id="xcard" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="witness-h">
+  <div class="wrap">
+    <div class="witness reveal">
+      <span class="label">In witness whereof</span>
+      <h2 id="witness-h" style="font-size:clamp(30px,4vw,46px);margin-bottom:18px">Built, measured, and signed.</h2>
+      <p>Every number on this page comes from a run in the repository, including the failures. The code, experiment reports and failure analysis are there to read.</p>
+      <div class="ctas" style="justify-content:center;margin-bottom:40px">
+        <a class="btn ink" href="https://github.com/mazenDDr/Contract-rag">Open the repository</a>
+        <a class="btn line" href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/failure_taxonomy.md">Read the failure analysis</a>
+      </div>
+      <div class="sigs">
+        <div class="sig" id="sig1"><div class="name">Mazen Khaled</div><div class="role">Author · September 2026</div></div>
+        <div class="sig" id="sig2"><div class="name" style="font-family:var(--mono);font-size:22px;line-height:62px;letter-spacing:.04em">κ = 0.60 · 88 tests</div><div class="role">Checked by: a calibrated grader and a test suite</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>contract-rag · built with local, open-weight models; no paid APIs</span>
+    <span><a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/ablations.md">Search experiments</a> · <a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/answer_quality.md">Answer quality</a> · <a href="https://github.com/mazenDDr/Contract-rag/blob/main/docs/failure_taxonomy.md">Failure analysis</a></span>
+  </div>
+</footer>
+
+<script>
+const STORY = /*__STORY__*/null;
+const EXAMPLES = /*__EXAMPLES__*/null;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const fmt = n => n.toLocaleString("en-US");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* theme */
+(() => {
+  const root = document.documentElement;
+  let saved = null;
+  try { saved = localStorage.getItem("theme"); } catch (e) {}
+  if (saved === "dark" || saved === "light") root.dataset.theme = saved;
+  $("#themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+    drawCharts();
+  });
+})();
+
+/* ---------- the real clause, split at sentence and chunk boundaries ---------- */
+const W0 = STORY.window_at[0], W1 = W0 + STORY.window.length;
+const EV = STORY.evidence_at;
+const fixed = Object.fromEntries(STORY.chunks.fixed.near.map(c => [c.id, c.at]));
+const [F1, F2] = STORY.chunks.fixed.near.map(c => c.at);
+const sents = STORY.chunks.sentence_window.near.map(c => c.at[0]).filter(x => x > W0 && x < W1);
+const evIdx = STORY.chunks.sentence_window.near.findIndex(c => c.has_evidence);
+const sentStarts = STORY.chunks.sentence_window.near.map(c => c.at[0]);
+const cuts = [F2[0], F1[1]].filter(x => x > W0 && x < W1);
+const bounds = [...new Set([W0, ...sents, ...cuts, EV[0], EV[1], W1])].filter(x => x >= W0 && x <= W1).sort((a, b) => a - b);
+const secStart = STORY.window.search(/4\. Term and Termination/) + W0;
+function sentenceIndex(pos) { let k = 0; sentStarts.forEach((s, i) => { if (s <= pos) k = i; }); return k; }
+function buildText() {
+  let html = "";
+  for (let i = 0; i < bounds.length - 1; i++) {
+    const a = bounds[i], b = bounds[i + 1];
+    let t = esc(STORY.window.slice(a - W0, b - W0));
+    t = t.replace(/4\. Term and Termination\./, '<span class="h">4. Term and Termination.</span>');
+    const k = sentenceIndex(a);
+    const cls = ["seg"];
+    if (a < F1[1] && b > F1[0]) cls.push("f1");
+    if (a < F2[1] && b > F2[0]) cls.push("f2");
+    if (a >= EV[0] && b <= EV[1]) cls.push("ev");
+    if (Math.abs(k - evIdx) <= 3 && !(a >= EV[0] && b <= EV[1])) cls.push("nb");
+    if (a < secStart) cls.push("pre");
+    if (cuts.includes(a)) html += '<span class="cut"></span>';
+    html += `<span class="${cls.join(" ")}">${t}</span>`;
+  }
+  return html;
+}
+$("#docText").innerHTML = "… " + buildText() + " …";
+$("#docRun").textContent = `chars ${fmt(W0)}–${fmt(W1)}`;
+
+/* hero: the same page, with the clause highlighted as the page loads */
+(() => {
+  const w = STORY.window, a = EV[0] - W0, b = EV[1] - W0;
+  const before = esc(w.slice(Math.max(0, a - 380), a)).replace(/4\. Term and Termination\./, "<b>4. Term and Termination.</b>");
+  $("#heroText").innerHTML = "… " + before + `<span class="sweep" id="sweep">${esc(w.slice(a, b))}</span>` + esc(w.slice(b, b + 150)) + " …";
+  $("#heroAnswer").innerHTML = esc(STORY.answer).replace(/\[(\d+)\]/g, '<span class="cite">[$1]</span>');
+  requestAnimationFrame(() => requestAnimationFrame(() => $("#sweep").classList.add("on")));
+})();
+
+/* question bar: the contract's name gets struck out in step 3 */
+(() => {
+  const q = STORY.question, n = STORY.contract_name, i = q.indexOf(n);
+  $("#qText").innerHTML = i < 0 ? esc(q) : esc(q.slice(0, i)) + `<del>${esc(n)}</del> <ins>the agreement</ins>` + esc(q.slice(i + n.length));
+  $("#aText").innerHTML = `<span class="label" style="display:block;margin-bottom:4px">Answer</span>` + esc(STORY.answer).replace(/\[(\d+)\]/g, '<span class="cite">[$1]</span>');
+})();
+
+/* panes, one per step */
+(() => {
+  const blocks = STORY.blocks, total = blocks[blocks.length - 1].at[1];
+  const hit = blocks.findIndex(bk => bk.at[0] <= EV[0] && EV[0] < bk.at[1]);
+  const map = blocks.map((bk, i) => `<div class="${i === hit ? "hit" : ""}" style="flex:${Math.max(0.6, (bk.at[1] - bk.at[0]) / total * 20)};--at:${i === hit ? ((EV[0] - bk.at[0]) / (bk.at[1] - bk.at[0])).toFixed(3) : 0}" title="${esc(bk.type)} ${fmt(bk.at[0])}–${fmt(bk.at[1])}"></div>`).join("");
+  const hb = blocks[hit];
+  $("#blockTag").textContent = `${hb.type} · p.${hb.page} · chars ${fmt(hb.at[0])}–${fmt(hb.at[1])}`;
+  const bm = STORY.bm25.slice(0, 8), max = Math.max(...bm.map(r => r.score));
+  const denseRank = Object.fromEntries(STORY.dense_bge_base.map(r => [r.id, r.rank]));
+  const evChunk = STORY.chunks.fixed.near.find(c => c.at[0] <= EV[0] && EV[1] <= c.at[1]) || STORY.chunks.fixed.near[1];
+  const hitId = evChunk.id;
+  const rows = bm.map(r => {
+    const h = r.id === hitId ? " hit" : "";
+    return `<span class="${h.trim()}">#${r.rank} ${esc(r.id.replace("fixed::", "chunk "))}</span><span class="bar${h}"><i data-w="${(r.score / max * 100).toFixed(1)}"></i></span><span class="${h.trim()}">${r.score.toFixed(2)}</span><span class="dn${h}">emb #${denseRank[r.id] ?? "–"}</span>`;
+  }).join("");
+  const chips = STORY.final.map((id, i) => `<span class="chip${id === hitId ? " hit" : ""}">[${i + 1}] ${esc(id.replace("fixed::", ""))}</span>`).join("");
+  const st = STORY.statements[0];
+  const panes = {
+    "1": `<span class="label">This contract → ${blocks.length} blocks (${blocks.map(b => b.type).filter((v, i, a) => a.indexOf(v) === i).join(", ")})</span><div class="blockmap">${map}</div><div class="bmlegend"><span>${fmt(total)} characters</span><span>${STORY.pages} pages</span><span>one box = one parsed block</span></div>`,
+    "2a": `<span class="label">fixed · 512 tokens, 64 overlap · ${STORY.chunks.fixed.count} chunks in this contract</span><div class="kv"><b>chunk 00001</b><span>chars ${fmt(F1[0])}–${fmt(F1[1])}</span><b>chunk 00002</b><span>chars ${fmt(F2[0])}–${fmt(F2[1])}</span><b>overlap</b><span>${fmt(F2[0])}–${fmt(F1[1])}: the clause (${fmt(EV[0])}–${fmt(EV[1])}) sits inside it</span></div>`,
+    "2b": `<span class="label">section-aware · ${STORY.chunks.section.count} chunks in this contract</span><div class="kv"><b>section 00001</b><span>chars ${fmt(STORY.chunks.section.near[0].at[0])}–${fmt(STORY.chunks.section.near[0].at[1])}: all of “4. Term and Termination”, one piece</span></div>`,
+    "2c": `<span class="label">sentence window · ${STORY.chunks.sentence_window.count} units in this contract</span><div class="kv"><b>${esc(STORY.chunks.sentence_window.near[evIdx].id.replace("sentence_window::", "sentence "))}</b><span>the clause itself, chars ${fmt(EV[0])}–${fmt(EV[1])}</span><b>shown with</b><span>±3 neighbouring sentences (lighter tint)</span></div>`,
+    "3": `<span class="label">query as searched</span><div style="font:500 15px/1.5 var(--sans)">${esc(STORY.scoped_question)}</div><div class="kv"><b>before</b><span>MRR 0.34: the name matched the title page</span><b>after</b><span>MRR 0.73</span></div>`,
+    "4": `<span class="label">top 8 by BM25 (bar = keyword score) · embedding rank on the right</span><div class="rank">${rows}</div>`,
+    "5": `<span class="label">the eight excerpts the model reads</span><div class="chips">${chips}</div><div class="kv"><b>[5]</b><span>= chunk ${esc(hitId.replace("fixed::", ""))}, the one holding the clause · answered in ${(STORY.latency_ms / 1000).toFixed(1)} s</span></div>`,
+    "6": `<span class="label">statement check · grade</span><div class="verdict"><span class="tick">✓</span><span><b>“${esc(st.text.slice(0, 92))}…”</b> cites [${st.cited.join(", ")}]; supported, and “90” appears in excerpt [5].</span></div><div class="verdict"><span class="tick">✓</span><span>Graded <b>${esc(STORY.grade.correctness)}</b>: ${esc(STORY.grade.reason)}</span></div>`,
+    "7": `<span class="label">failure trace for this answer</span><div class="checks"><div>evidence is inside a chunk</div><div>a retriever ranked it (#5)</div><div>it reached the model</div><div>all of it reached the model</div><div>the model answered</div><div>every claim is supported</div><div>graded correct: nothing to explain</div></div>`,
+  };
+  $("#panes").innerHTML = Object.entries(panes).map(([k, v]) => `<div class="pane" data-pane="${k}">${v}</div>`).join("");
+})();
+
+/* ---------- scroll: each step sets the stage explicitly ---------- */
+const ORDER = ["0", "1", "2a", "2b", "2c", "3", "4", "5", "6", "7"];
+function setStep(step) {
+  const stage = $("#stage");
+  stage.dataset.step = step;
+  const i = ORDER.indexOf(step);
+  $("#stepCount").textContent = `step ${i} of ${ORDER.length - 1}`;
+  ["3", "5"].forEach(s => stage.classList.toggle("after-" + s, i >= ORDER.indexOf(s)));
+  $$(".pane").forEach(p => p.classList.toggle("on", p.dataset.pane === step));
+  $$(".step").forEach(s => s.classList.toggle("active", s.dataset.step === step));
+  $$("#storyNav .dot").forEach((d, j) => d.setAttribute("aria-current", ORDER[j + 1] === step ? "step" : "false"));
+  if (step === "4") $$(".rank .bar i").forEach(b => { b.style.width = b.dataset.w + "%"; });
+}
+// the story follows the page's own scroll: one step per --step-len of scrolling, checked once per frame
+const story = $("#story"), stepEls = $$(".step"), N = stepEls.length;
+const navH = () => $(".nav").offsetHeight;
+const travel = () => Math.max(1, story.offsetHeight - (innerHeight - navH()));
+const storyTop = () => story.getBoundingClientRect().top + scrollY - navH();
+let shown = -1, queued = false;
+function syncStep() {
+  queued = false;
+  const seg = travel() / (N - 0.5);  // matches the track: the last step has half a segment
+  const i = Math.min(N - 1, Math.max(0, Math.floor((scrollY - storyTop()) / seg)));
+  if (i !== shown) { shown = i; setStep(stepEls[i].dataset.step); }
+}
+addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(syncStep); } }, {passive: true});
+addEventListener("resize", syncStep);
+$("#storyNav").innerHTML = stepEls.map((s, i) =>
+  `<button class="dot" type="button" data-i="${i}" aria-label="${esc(s.querySelector(".label").textContent)}">${esc(s.dataset.step)}</button>`
+).join("") + `<span class="hint">scroll, or pick a step</span>`;
+$$("#storyNav .dot").forEach(b => b.addEventListener("click", () => {
+  scrollTo({top: storyTop() + (+b.dataset.i + 0.25) * travel() / (N - 0.5), behavior: reduce ? "auto" : "smooth"});
+}));
+syncStep();
+
+/* ---------- decisions ---------- */
+const DECISIONS = [
+  ["Local, open-weight models only.", "paid model APIs", "Everything runs on a laptop and reruns the same way. qwen3.5:4b answers, gemma4:12b grades, and small models embed and rerank.", "<b>$0</b> per run"],
+  ["Parse the PDF's layout.", "extracted plain text", "Headings and tables survive, and every block keeps its character offsets, so a citation can point to the page.", "<b>0</b> offset errors in 100 contracts"],
+  ["Fixed 512-token chunks with 64-token overlap.", "section-aware or sentence chunks", "The crude cut found the evidence most often; the overlap keeps clauses that straddle a boundary.", "recall@8 <b>0.85</b> vs 0.74 / 0.58"],
+  ["Strike the contract's name from the question.", "searching with the question as asked", "Inside one contract, the name only matches the title page and signatures.", "MRR <b>0.34 → 0.73</b>"],
+  ["BM25 keyword search.", "embeddings, or a hybrid of both", "Contract questions and clauses share exact terms; meaning search alone missed more, and a hybrid added cost without gain.", "MRR <b>0.73</b> vs 0.47–0.50; hybrid ±0.02"],
+  ["No reranker.", "a cross-encoder reranker", "The larger reranker demoted the right clause and cost about a second per question; the small one changed nothing.", "MRR <b>0.73</b> vs 0.56 with reranking"],
+  ["Answer from eight numbered excerpts: cite each claim, or refuse.", "free-form answers", "Every claim becomes checkable, and a missing answer is said, not invented.", "<b>91%</b> correct refusals; citations valid 0.86–1.00"],
+  ["Grade with a different model, statement by statement.", "the model grading itself, one score per answer", "Avoids self-preference and shows which sentence is wrong. A code rule checks every number.", "faithfulness κ <b>0.57</b>"],
+  ["Count extra details only if they contradict the reference.", "faulting any detail outside the highlight, or a key-fact checklist", "The first grader punished true details; a checklist lost the answer's conclusion.", "correctness κ <b>0.60</b> vs 0.48 / 0.18"],
+  ["Trace every failure to the stage that broke.", "one average score", "An average says <i>how much</i>; a trace says <i>where</i>, and so what to fix next.", "<b>62%</b> of failures are retrieval"],
+];
+$("#clauses").innerHTML = DECISIONS.map(([t, inst, why, ev], i) => `<div class="clause-row"><div class="no">${i + 1}.</div><div><h3>${t}</h3><p>${why}</p><div class="instead">instead of <s>${inst}</s></div></div><div class="evidence">${ev}</div></div>`).join("");
+
+/* ---------- exhibits ---------- */
+const LABELS = {q0078: "A · Termination", q0046: "B · Insurance", q0069: "C · License grant", q0060: "D · Renewal", q0048: "E · Not in the contract"};
+const short = e => (e.contract ? e.question.replace(e.contract, "the agreement") : e.question);
+function grades(e) {
+  if (!e.answerable) return e.abstention_correct ? `<span class="gtag">Correctly said the contract doesn't cover it</span>` : "";
+  return (e.correctness === 1 ? `<span class="gtag">Correct</span>` : "") + (e.faithfulness === 1 ? `<span class="gtag">Every claim supported</span>` : "");
+}
+function showExhibit(i) {
+  const e = EXAMPLES[i];
+  $$(".xbtn").forEach((b, j) => b.setAttribute("aria-pressed", String(i === j)));
+  const a = esc(e.answer).replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (_, ns) => ns.split(",").map(n => `<button class="cite" type="button" data-n="${n.trim()}" aria-pressed="false">[${n.trim()}]</button>`).join(""));
+  $("#xcard").innerHTML = `<div class="contract">${esc(e.contract || "")}</div><div class="q">${esc(e.question)}</div><div class="a">${a}</div><div class="grades">${grades(e)}</div>` +
+    e.citations.map(c => `<div class="src" data-n="${c.n}"><span class="meta">[${c.n}] ${esc(c.chunk_id)} · p.${c.page}${c.section ? " · " + esc(c.section) : ""}</span>… <mark>${esc(c.sentence)}</mark> …</div>`).join("");
+  $$("#xcard button.cite").forEach(b => b.addEventListener("click", () => {
+    $$("#xcard button.cite").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.n === b.dataset.n)));
+    $$("#xcard .src").forEach(s => s.classList.toggle("on", s.dataset.n === b.dataset.n));
+  }));
+}
+$("#xlist").innerHTML = EXAMPLES.map(e => `<button class="xbtn" type="button" aria-pressed="false"><small>${esc(LABELS[e.qid] || e.category)}</small>${esc(short(e))}</button>`).join("");
+$$(".xbtn").forEach((b, i) => b.addEventListener("click", () => showExhibit(i)));
+showExhibit(0);
+
+/* ---------- charts ---------- */
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function hbars(el, rows) {
+  const W = 380, rowH = 34, lw = 176, H = rows.length * rowH + 22, x = v => lw + (W - lw - 44) * v;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Mean reciprocal rank by search setup">`;
+  [0, .5, 1].forEach(t => { s += `<line x1="${x(t)}" x2="${x(t)}" y1="0" y2="${H - 18}" stroke="${css("--line")}"/><text x="${x(t)}" y="${H - 4}" font-size="11" text-anchor="middle" fill="${css("--ink-3")}" font-family="IBM Plex Mono, monospace">${t}</text>`; });
+  rows.forEach((r, i) => {
+    const y = i * rowH + 6;
+    s += `<text x="${lw - 8}" y="${y + 15}" font-size="12" text-anchor="end" fill="${css(r.hi ? "--ink" : "--ink-2")}" font-weight="${r.hi ? 600 : 400}" font-family="IBM Plex Sans, sans-serif">${esc(r.l)}</text>
+      <rect x="${lw}" y="${y + 3}" width="${x(r.v) - lw}" height="17" rx="3" fill="${css(r.c || (r.hi ? "--mach" : "--ink-3"))}"/>
+      <text x="${x(r.v) + 6}" y="${y + 16}" font-size="11.5" fill="${css("--ink")}" font-family="IBM Plex Mono, monospace">${r.v.toFixed(2)}</text>`;
+  });
+  el.innerHTML = s + "</svg>";
+}
+function dumbbell(el, rows) {
+  const W = 380, rowH = 32, lw = 150, H = rows.length * rowH + 22, lo = .5, hi = .8, x = v => lw + (W - lw - 36) * (v - lo) / (hi - lo);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Correctness per setup under the first and the fixed grader">`;
+  [.5, .6, .7, .8].forEach(t => { s += `<line x1="${x(t)}" x2="${x(t)}" y1="0" y2="${H - 18}" stroke="${css("--line")}"/><text x="${x(t)}" y="${H - 4}" font-size="11" text-anchor="middle" fill="${css("--ink-3")}" font-family="IBM Plex Mono, monospace">${t.toFixed(1)}</text>`; });
+  rows.forEach(([l, a, b], i) => {
+    const y = i * rowH + 16;
+    s += `<text x="${lw - 8}" y="${y + 4}" font-size="12" text-anchor="end" fill="${css("--ink-2")}" font-family="IBM Plex Sans, sans-serif">${esc(l)}</text>
+      <line x1="${x(a)}" x2="${x(b)}" y1="${y}" y2="${y}" stroke="${css("--mach")}" stroke-width="3" stroke-opacity=".3"/>
+      <circle cx="${x(a)}" cy="${y}" r="5" fill="${css("--ink-3")}"/><circle cx="${x(b)}" cy="${y}" r="6" fill="${css("--mach")}"/>
+      <text x="${x(b) + 9}" y="${y + 4}" font-size="11" fill="${css("--ink")}" font-family="IBM Plex Mono, monospace">${b.toFixed(2)}</text>`;
+  });
+  el.innerHTML = s + "</svg>";
+}
+function stacked(el, lg, parts) {
+  const W = 380, total = parts.reduce((a, p) => a + p.n, 0), x = n => (W - 2) * n / total;
+  let s = `<svg viewBox="0 0 ${W} 150" role="img" aria-label="185 failures by stage">`, x0 = 0;
+  parts.forEach(p => { const w = x(p.n); s += `<rect x="${x0 + 1}" y="8" width="${Math.max(1, w - 2)}" height="54" rx="4" fill="${css(p.c)}" fill-opacity="${p.o || 1}"/>`; if (w > 30) s += `<text x="${x0 + w / 2}" y="40" font-size="12" text-anchor="middle" fill="${css("--sheet")}" font-family="IBM Plex Mono, monospace">${p.n}</text>`; x0 += w; });
+  const r = parts.filter(p => p.s === "r").reduce((a, p) => a + p.n, 0);
+  s += `<text x="0" y="92" font-size="30" fill="${css("--mach")}" font-family="Libre Caslon Display, serif">${Math.round(100 * r / total)}%</text><text x="0" y="112" font-size="12" fill="${css("--ink-2")}" font-family="IBM Plex Sans, sans-serif">before the model saw the evidence</text>
+        <text x="${W}" y="92" font-size="30" text-anchor="end" fill="${css("--warn")}" font-family="Libre Caslon Display, serif">${100 - Math.round(100 * r / total)}%</text><text x="${W}" y="112" font-size="12" text-anchor="end" fill="${css("--ink-2")}" font-family="IBM Plex Sans, sans-serif">in the model or its refusals</text>`;
+  el.innerHTML = s + "</svg>";
+  lg.innerHTML = parts.map(p => `<span><i style="background:var(${p.c});opacity:${p.o || 1}"></i>${p.l} ${p.n}</span>`).join("");
+}
+function drawCharts() {
+  hbars($("#chartSearch"), [
+    {l: "BM25, name struck out", v: .73, hi: true}, {l: "BM25 + embeddings", v: .72}, {l: "BM25 + small reranker", v: .72},
+    {l: "BM25 + large reranker", v: .56}, {l: "embeddings alone", v: .47}, {l: "BM25, name left in", v: .34, c: "--pen"}, {l: "BM25, all contracts", v: .29, c: "--pen"},
+  ]);
+  dumbbell($("#chartAnswer"), [
+    ["fixed · BM25", .61, .75], ["fixed · + bge-base", .61, .74], ["sentence · hybrid", .63, .74], ["fixed · + bge-small", .59, .73],
+    ["section · BM25", .58, .71], ["fixed · + reranker", .61, .70], ["sentence · BM25", .52, .67], ["section · hybrid", .53, .65],
+  ]);
+  stacked($("#chartFail"), $("#failLegend"), [
+    {l: "half found", n: 68, c: "--mach", s: "r"}, {l: "ranked too low", n: 40, c: "--mach", o: .72, s: "r"}, {l: "never ranked", n: 7, c: "--mach", o: .45, s: "r"},
+    {l: "unsupported claim", n: 33, c: "--warn", s: "g"}, {l: "misread", n: 25, c: "--warn", o: .7, s: "g"}, {l: "abstention", n: 12, c: "--pen", o: .8, s: "g"},
+  ]);
+}
+drawCharts();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawCharts);
+
+/* ---------- reveals and the signature ---------- */
+const revObs = new IntersectionObserver(entries => entries.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.remove("pending"); revObs.unobserve(e.target); }
+}), {rootMargin: "0px 0px -12% 0px"});
+if (!reduce) $$(".reveal").forEach(el => { if (el.getBoundingClientRect().top > innerHeight) { el.classList.add("pending"); revObs.observe(el); } });
+const sigObs = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("drawn"); sigObs.unobserve(e.target); } }), {threshold: .6});
+$$(".sig").forEach(s => (reduce ? s.classList.add("drawn") : sigObs.observe(s)));
+</script>
+</body>
+</html>
